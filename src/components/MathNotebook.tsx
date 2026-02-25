@@ -154,8 +154,10 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
   const isCarryCorrect = (input: string | undefined, expected: string | undefined) => {
     if (input === undefined || input === '' || expected === undefined) return false;
     if (input === expected) return true;
-    if (input.replace('+', '') === expected.replace('+', '')) return true;
-    return false;
+    // Allow loose match (ignore + and -) to handle "1", "+1", "-1" equally
+    const cleanInput = input.replace(/[+-]/g, '');
+    const cleanExpected = expected.replace(/[+-]/g, '');
+    return cleanInput === cleanExpected;
   };
 
   const getCategoryKey = () => {
@@ -208,7 +210,25 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
         });
       }
 
-      if (solutionCorrect && carriesCorrect) {
+      if (solutionCorrect) {
+        // If solution is correct but carries are missing/wrong, auto-fill them and proceed
+        if (!carriesCorrect) {
+            const updates: Record<string, CellData> = {};
+            currentTaskCarryKeys.forEach(key => {
+                const expected = carryMap[key];
+                const current = grid[key];
+                if (!isCarryCorrect(current?.carry, expected)) {
+                    updates[key] = { ...current, value: current?.value || '', carry: expected, isCarryValid: true };
+                }
+            });
+            
+            if (Object.keys(updates).length > 0) {
+                setGrid(prev => ({ ...prev, ...updates }));
+                // Return here to let the effect run again with updated grid (which will now be correct)
+                return; 
+            }
+        }
+
         setCurrentTaskSolutionKeys([]);
         setCurrentTaskCarryKeys([]);
         

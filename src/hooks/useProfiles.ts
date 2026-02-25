@@ -83,12 +83,10 @@ export function useProfiles() {
   };
 
   const deleteProfile = (id: string) => {
-    if (confirm('Möchtest du dieses Profil wirklich löschen? Alle Fortschritte gehen verloren.')) {
-      const newProfiles = profiles.filter(p => p.id !== id);
-      saveProfiles(newProfiles);
-      if (activeProfileId === id) {
-        selectProfile(null);
-      }
+    const newProfiles = profiles.filter(p => p.id !== id);
+    saveProfiles(newProfiles);
+    if (activeProfileId === id) {
+      selectProfile(null);
     }
   };
 

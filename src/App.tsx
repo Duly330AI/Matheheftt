@@ -24,13 +24,17 @@ export default function App() {
 
   if (!activeProfile) {
     return (
-      <ProfileSelector 
-        profiles={profiles} 
-        createProfile={createProfile} 
-        selectProfile={selectProfile}
-        deleteProfile={deleteProfile}
-        updateProfile={updateProfile}
-      />
+      <>
+        <ProfileSelector 
+          profiles={profiles} 
+          createProfile={createProfile} 
+          selectProfile={selectProfile}
+          deleteProfile={deleteProfile}
+          updateProfile={updateProfile}
+          onOpenLeaderboard={() => setShowLeaderboard(true)}
+        />
+        {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
+      </>
     );
   }
 

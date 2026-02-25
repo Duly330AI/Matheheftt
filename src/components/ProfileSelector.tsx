@@ -8,6 +8,7 @@ interface ProfileSelectorProps {
   selectProfile: (id: string) => void;
   deleteProfile: (id: string) => void;
   updateProfile: (id: string, name: string, avatar: string) => void;
+  onOpenLeaderboard: () => void;
 }
 
 const AVATARS = [
@@ -19,13 +20,14 @@ const AVATARS = [
   { id: 'turtle', icon: Turtle, label: 'Schildkröte' },
 ];
 
-export function ProfileSelector({ profiles, createProfile, selectProfile, deleteProfile, updateProfile }: ProfileSelectorProps) {
+export function ProfileSelector({ profiles, createProfile, selectProfile, deleteProfile, updateProfile, onOpenLeaderboard }: ProfileSelectorProps) {
   const [newProfileName, setNewProfileName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('cat');
   const [isCreating, setIsCreating] = useState(false);
 
   // Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
 
@@ -41,6 +43,7 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
     setEditingId(profile.id);
     setEditName(profile.name);
     setEditAvatar(profile.avatar || 'cat');
+    setDeleteConfirmId(null);
   };
 
   const cancelEditing = () => {
@@ -56,9 +59,21 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
     }
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteConfirmId(id);
+    setEditingId(null);
+  };
+
+  const confirmDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     deleteProfile(id);
+    setDeleteConfirmId(null);
+  };
+
+  const cancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteConfirmId(null);
   };
 
   const getAvatarIcon = (avatarId: string) => {
@@ -68,7 +83,16 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
 
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-2xl border border-stone-200">
+      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-2xl border border-stone-200 relative">
+        <button 
+            onClick={onOpenLeaderboard}
+            className="absolute top-6 right-6 text-yellow-500 hover:text-yellow-600 transition-colors p-2 rounded-full hover:bg-yellow-50 flex items-center gap-2"
+            title="Bestenliste"
+        >
+            <Trophy size={24} />
+            <span className="text-sm font-bold hidden sm:inline">Bestenliste</span>
+        </button>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-stone-800 mb-2">Matheheft Digital</h1>
           <p className="text-stone-500">Wähle dein Profil um zu starten</p>
@@ -76,6 +100,25 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {profiles.map(profile => {
+            if (deleteConfirmId === profile.id) {
+              return (
+                <div key={profile.id} className="bg-red-50 p-4 rounded-lg border-2 border-red-500 shadow-md flex flex-col items-center justify-center gap-3 animate-in fade-in zoom-in duration-200 min-h-[120px]">
+                  <div className="text-center">
+                    <h3 className="text-red-700 font-bold text-lg mb-1">Profil löschen?</h3>
+                    <p className="text-red-600 text-sm">Endgültig löschen?</p>
+                  </div>
+                  <div className="flex justify-center gap-3 w-full">
+                      <button onClick={cancelDelete} className="flex-1 px-3 py-2 bg-white text-stone-600 rounded-lg border border-stone-200 hover:bg-stone-50 font-medium transition-colors text-sm">
+                        Abbrechen
+                      </button>
+                      <button onClick={(e) => confirmDelete(profile.id, e)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors shadow-sm text-sm">
+                        Ja, weg damit
+                      </button>
+                  </div>
+                </div>
+              );
+            }
+
             if (editingId === profile.id) {
               return (
                 <div key={profile.id} className="bg-white p-4 rounded-lg border-2 border-blue-500 shadow-md flex flex-col gap-3 animate-in fade-in zoom-in duration-200">
@@ -126,26 +169,14 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
               <div key={profile.id} className="relative group">
                 <button
                   onClick={() => selectProfile(profile.id)}
-                  className="w-full flex items-start p-4 rounded-lg border border-stone-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
+                  className="w-full flex items-center p-4 rounded-lg border border-stone-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
                 >
                   <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 group-hover:bg-blue-100 group-hover:text-blue-600 mr-4 shrink-0">
                     <Icon size={24} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-stone-800 text-lg mb-1">{profile.name}</div>
-                    <div className="text-xs text-stone-500 mb-2">Gesamtpunkte: {profile.totalScore}</div>
-                    
-                    {/* Mini Stats */}
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(profile.scores || {}).slice(0, 3).map(([cat, score]) => (
-                        <span key={cat} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-stone-100 text-stone-600">
-                          {cat === 'mixed' ? 'Mix' : cat}: {score}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-stone-400 group-hover:text-blue-500 ml-2 self-center">
-                    <Trophy size={20} />
+                    <div className="text-xs text-stone-500">Gesamtpunkte: {profile.totalScore}</div>
                   </div>
                 </button>
 
@@ -159,7 +190,7 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
                         <Pencil size={14} />
                     </button>
                     <button 
-                        onClick={(e) => handleDelete(profile.id, e)}
+                        onClick={(e) => handleDeleteClick(profile.id, e)}
                         className="p-1.5 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="Löschen"
                     >
