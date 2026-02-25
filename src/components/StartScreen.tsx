@@ -142,34 +142,47 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart, onBack, onOpe
         {/* Game Mode Selection */}
         <div className="mb-8">
           <p className="text-sm text-stone-500 mb-2 font-medium uppercase tracking-wider">Modus</p>
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <button
               onClick={() => setGameMode('classic')}
               className={cn(
-                "p-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2",
+                "p-3 rounded-lg border-2 text-sm font-medium transition-all flex flex-col items-center justify-center gap-1",
                 gameMode === 'classic'
                   ? "border-indigo-500 bg-indigo-50 text-indigo-700"
                   : "border-stone-200 hover:border-indigo-300 text-stone-600"
               )}
             >
               <List size={18} />
-              Klassik (10 Aufgaben)
+              <span>Klassik</span>
             </button>
             <button
               onClick={() => setGameMode('time_attack')}
               className={cn(
-                "p-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2",
+                "p-3 rounded-lg border-2 text-sm font-medium transition-all flex flex-col items-center justify-center gap-1",
                 gameMode === 'time_attack'
                   ? "border-purple-500 bg-purple-50 text-purple-700"
                   : "border-stone-200 hover:border-purple-300 text-stone-600"
               )}
             >
               <Clock size={18} />
-              Zeit-Attacke
+              <span>Zeit</span>
+            </button>
+            <button
+              onClick={() => setGameMode('exam')}
+              className={cn(
+                "p-3 rounded-lg border-2 text-sm font-medium transition-all flex flex-col items-center justify-center gap-1",
+                gameMode === 'exam'
+                  ? "border-red-500 bg-red-50 text-red-700"
+                  : "border-stone-200 hover:border-red-300 text-stone-600"
+              )}
+              title="Keine direkte Hilfe, Auswertung am Ende"
+            >
+              <Zap size={18} />
+              <span>Prüfung</span>
             </button>
           </div>
 
-          {gameMode === 'time_attack' && (
+          {(gameMode === 'time_attack' || gameMode === 'exam') && (
             <div className="flex justify-center gap-2 animate-in fade-in slide-in-from-top-2">
               {[180, 300, 600].map((seconds) => (
                 <button
@@ -178,8 +191,8 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart, onBack, onOpe
                   className={cn(
                     "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
                     timeLimit === seconds
-                      ? "bg-purple-100 text-purple-700 border-purple-200"
-                      : "bg-stone-50 text-stone-500 border-stone-200 hover:border-purple-200"
+                      ? (gameMode === 'exam' ? "bg-red-100 text-red-700 border-red-200" : "bg-purple-100 text-purple-700 border-purple-200")
+                      : "bg-stone-50 text-stone-500 border-stone-200 hover:border-stone-300"
                   )}
                 >
                   {seconds / 60} Min

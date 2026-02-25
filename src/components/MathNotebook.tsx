@@ -68,6 +68,8 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
     cellRefs.current[r][c] = el;
   }, []);
 
+  const isExamMode = sessionState.gameMode === 'exam' && !sessionState.examReviewMode;
+
   const handleStartSession = (type: TaskType, table: number | null, difficulty: Difficulty, gameMode: GameMode, timeLimit?: number) => {
     setTaskType(type);
     setSelectedTable(table);
@@ -92,7 +94,8 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
         gameMode,
         difficulty,
         timeLimit,
-        remainingTime: timeLimit
+        remainingTime: timeLimit,
+        examReviewMode: false
     });
 
     handleGenerateTask(false, type, table, difficulty);
@@ -194,7 +197,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
 
   // Check completion
   useEffect(() => {
-    if (currentTaskSolutionKeys.length > 0 && sessionState.isActive) {
+    if (currentTaskSolutionKeys.length > 0 && sessionState.isActive && !isExamMode) {
       const solutionCorrect = currentTaskSolutionKeys.every(key => {
         const cell = grid[key];
         const expected = solutionMap[key];
@@ -270,7 +273,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
         }
       }
     }
-  }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, handleGenerateTask, taskType, updateScore, sessionState.currentTaskIndex, sessionState.taskStartTime, sessionState.score, selectedTable, sessionState.isActive, sessionState.gameMode, sessionState.difficulty]);
+  }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, handleGenerateTask, taskType, updateScore, sessionState.currentTaskIndex, sessionState.taskStartTime, sessionState.score, selectedTable, sessionState.isActive, sessionState.gameMode, sessionState.difficulty, isExamMode]);
 
   const updateCell = useCallback((r: number, c: number, updates: Partial<CellData>) => {
     const key = getCellKey(r, c);
@@ -287,7 +290,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
       
       let isValid = current.isValid;
       if (solutionMap[key] !== undefined && updates.value !== undefined) {
-          isValid = newValue === solutionMap[key];
+          isValid = isExamMode ? null : newValue === solutionMap[key];
       } else if (solutionMap[key] === undefined && updates.value !== undefined) {
           isValid = null;
       }
@@ -295,9 +298,9 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
       let isCarryValid = current.isCarryValid;
       if (updates.carry !== undefined) {
           if (carryMap[key] !== undefined) {
-              isCarryValid = isCarryCorrect(newCarry, carryMap[key]);
+              isCarryValid = isExamMode ? null : isCarryCorrect(newCarry, carryMap[key]);
           } else if (newCarry) {
-              isCarryValid = false;
+              isCarryValid = isExamMode ? null : false;
           } else {
               isCarryValid = null;
           }
@@ -494,6 +497,59 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
     }
   }, [selectionStart, selectionEnd, grid]);
 
+  const handleExamSubmit = useCallback(() => {
+    // Calculate score based on all tasks
+    let correctCells = 0;
+    let totalCells = 0;
+    
+    // Evaluate grid and update colors for review mode
+    const evaluatedGrid = { ...grid };
+    
+    Object.keys(solutionMap).forEach(key => {
+        totalCells++;
+        const cell = evaluatedGrid[key] || { value: '', underlined: false };
+        const expected = solutionMap[key];
+        const isValid = cell.value === expected;
+        if (isValid) correctCells++;
+        
+        evaluatedGrid[key] = { ...cell, isValid };
+    });
+    
+    Object.keys(carryMap).forEach(key => {
+        const cell = evaluatedGrid[key] || { value: '', underlined: false };
+        const expected = carryMap[key];
+        const isCarryValid = isCarryCorrect(cell.carry, expected);
+        
+        evaluatedGrid[key] = { ...cell, isCarryValid };
+    });
+    
+    setGrid(evaluatedGrid);
+    
+    const percentage = totalCells > 0 ? correctCells / totalCells : 0;
+    
+    let difficultyMultiplier = 1;
+    if (sessionState.difficulty === 'medium') difficultyMultiplier = 2;
+    if (sessionState.difficulty === 'hard') difficultyMultiplier = 3;
+    
+    const points = Math.floor(percentage * 1000 * difficultyMultiplier);
+    
+    setSessionState(prev => ({
+        ...prev,
+        score: points,
+        isActive: false,
+        examReviewMode: true // Enable review mode
+    }));
+    
+    const category = getCategoryKey();
+    const isHigh = updateScore(points, category);
+    setIsNewHighscore(isHigh);
+    setShowSummary(true);
+  }, [grid, solutionMap, carryMap, sessionState.difficulty, updateScore]);
+
+  const handleNextExamTask = useCallback(() => {
+      handleGenerateTask(true);
+  }, [handleGenerateTask]);
+
   const handleInsertSymbol = useCallback((symbol: string) => {
     if (focusedCell) {
       updateCell(focusedCell.r, focusedCell.c, { value: symbol });
@@ -511,6 +567,8 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
         activeProfile={activeProfile}
         sessionState={sessionState}
         onNewTask={() => handleGenerateTask(false)}
+        onExamSubmit={handleExamSubmit}
+        onNextExamTask={handleNextExamTask}
         onClear={() => { if (confirm('Wirklich löschen?')) setGrid({}); }}
         onToggleUnderline={toggleUnderline}
         onToggleCarryMode={() => setIsCarryMode(prev => !prev)}
@@ -546,6 +604,8 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
           taskType={taskType}
           onRestart={() => handleGenerateTask(false)}
           onMenu={() => setIsSessionStarted(false)}
+          onReview={() => setShowSummary(false)}
+          isNewHighscore={isNewHighscore}
         />
       )}
     </div>

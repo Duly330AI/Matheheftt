@@ -8,6 +8,8 @@ interface ToolbarProps {
   activeProfile: Profile | null;
   sessionState: SessionState;
   onNewTask: () => void;
+  onExamSubmit?: () => void;
+  onNextExamTask?: () => void;
   onClear: () => void;
   onToggleUnderline: () => void;
   onToggleCarryMode: () => void;
@@ -26,6 +28,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   activeProfile,
   sessionState,
   onNewTask,
+  onExamSubmit,
+  onNextExamTask,
   onClear,
   onToggleUnderline,
   onToggleCarryMode,
@@ -83,20 +87,41 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <div className="relative">
           <div className="flex items-center bg-stone-100 rounded p-0.5">
-            <button
-              onClick={onNewTask}
-              className="p-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors"
-              title="Neue Aufgabe generieren"
-            >
-              <RefreshCw size={20} />
-            </button>
-            <button
-              onClick={() => setShowTaskMenu(!showTaskMenu)}
-              className="p-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors"
-              title="Aufgaben-Einstellungen"
-            >
-              <ChevronDown size={16} />
-            </button>
+            {sessionState.gameMode === 'exam' && !sessionState.examReviewMode ? (
+              <>
+                <button
+                  onClick={onNextExamTask}
+                  className="px-3 py-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors text-sm font-medium"
+                  title="Nächste Aufgabe"
+                >
+                  Nächste
+                </button>
+                <button
+                  onClick={onExamSubmit}
+                  className="px-3 py-1.5 rounded bg-red-100 hover:bg-red-200 text-red-700 transition-colors text-sm font-medium ml-1"
+                  title="Prüfung abgeben"
+                >
+                  Abgeben
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={onNewTask}
+                  className="p-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors"
+                  title="Neue Aufgabe generieren"
+                >
+                  <RefreshCw size={20} />
+                </button>
+                <button
+                  onClick={() => setShowTaskMenu(!showTaskMenu)}
+                  className="p-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors"
+                  title="Aufgaben-Einstellungen"
+                >
+                  <ChevronDown size={16} />
+                </button>
+              </>
+            )}
           </div>
 
           {showTaskMenu && (

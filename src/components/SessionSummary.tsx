@@ -7,6 +7,7 @@ interface SessionSummaryProps {
   taskType: TaskType;
   onRestart: () => void;
   onMenu: () => void;
+  onReview?: () => void;
   isNewHighscore?: boolean;
 }
 
@@ -15,6 +16,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
   taskType,
   onRestart,
   onMenu,
+  onReview,
   isNewHighscore
 }) => {
   const duration = Math.floor((Date.now() - sessionState.startTime) / 1000);
@@ -53,6 +55,14 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
         </div>
         
         <div className="space-y-3">
+          {sessionState.gameMode === 'exam' && onReview && (
+            <button
+              onClick={onReview}
+              className="w-full py-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 font-medium"
+            >
+              Ergebnisse überprüfen
+            </button>
+          )}
           <button
             onClick={onRestart}
             className="w-full py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium"

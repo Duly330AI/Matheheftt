@@ -40,4 +40,5 @@ export interface SessionState {
   difficulty: Difficulty;
   timeLimit?: number;
   remainingTime?: number;
+  examReviewMode?: boolean;
 }
