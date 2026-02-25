@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, KeyboardEvent, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Eraser, Underline, Trash2, Download, RefreshCw, CheckCircle, Superscript, ArrowLeft, ArrowRight, ArrowDown, Ban, Settings, ChevronDown } from 'lucide-react';
 
@@ -7,6 +7,7 @@ interface CellData {
   underlined: boolean;
   carry?: string;
   isValid?: boolean | null;
+  isCarryValid?: boolean | null;
 }
 
 // Grid dimensions
@@ -35,6 +36,7 @@ export function MathGrid() {
   // Auto-Generation State
   const [nextStartRow, setNextStartRow] = useState(2);
   const [currentTaskSolutionKeys, setCurrentTaskSolutionKeys] = useState<string[]>([]);
+  const [currentTaskCarryKeys, setCurrentTaskCarryKeys] = useState<string[]>([]);
   const [gridRows, setGridRows] = useState(25);
   
   // Refs for cell inputs to manage focus
@@ -49,7 +51,15 @@ export function MathGrid() {
 
   const getCellKey = (r: number, c: number) => `${r},${c}`;
 
-  const generateTask = (append = false) => {
+  const isCarryCorrect = (input: string | undefined, expected: string | undefined) => {
+      if (input === undefined || input === '' || expected === undefined) return false;
+      if (input === expected) return true;
+      // Allow "+1" to match "1" and vice versa
+      if (input.replace('+', '') === expected.replace('+', '')) return true;
+      return false;
+  };
+
+  const generateTask = useCallback((append = false) => {
     // Determine start row
     let startR = 2;
     if (append) {
@@ -64,8 +74,11 @@ export function MathGrid() {
     }
     
     // Ensure grid has enough rows
-    if (startR + 10 > gridRows) {
-        setGridRows(prev => Math.max(prev, startR + 15));
+    // Use functional update to ensure we always check against the latest state if needed, 
+    // but here we are inside the function.
+    // We need to make sure gridRows is fresh.
+    if (startR + 15 > gridRows) {
+        setGridRows(prev => Math.max(prev, startR + 20));
     }
 
     let op = '';
@@ -161,8 +174,19 @@ export function MathGrid() {
           if (i < strRes.length) {
              newSolution[getCellKey(row, col)] = colRes.toString();
              
-             if (currentCarry > 0) {
-                 newCarry[getCellKey(row, col)] = currentCarry.toString();
+             if (nextCarry > 0) {
+                 if (op === '+') {
+                     // For addition, carry goes to the next column (left)
+                     // But we don't mark the carry if it's the final overflow that creates a new digit
+                     if (i < maxLen - 1) {
+                         const carryKey = getCellKey(row, col - 1);
+                         newCarry[carryKey] = nextCarry.toString();
+                     }
+                 } else {
+                     // For subtraction, carry stays in the current column (generating column)
+                     const carryVal = `-${nextCarry}`;
+                     newCarry[getCellKey(row, col)] = carryVal;
+                 }
              }
           }
           
@@ -289,6 +313,7 @@ export function MathGrid() {
     
     // Track keys for the NEW task only
     setCurrentTaskSolutionKeys(Object.keys(newSolution));
+    setCurrentTaskCarryKeys(Object.keys(newCarry));
     
     // Auto-focus the first input cell
     setTimeout(() => {
@@ -300,21 +325,31 @@ export function MathGrid() {
             setIsCarryMode(false);
         }
     }, 50);
-  };
+  }, [taskType, selectedTable, nextStartRow, gridRows]);
 
   // Check for task completion
   useEffect(() => {
       if (currentTaskSolutionKeys.length > 0) {
-          const allCorrect = currentTaskSolutionKeys.every(key => {
+          const solutionCorrect = currentTaskSolutionKeys.every(key => {
               const cell = grid[key];
               const expected = solutionMap[key];
               return cell && cell.value === expected;
           });
           
-          if (allCorrect) {
+          let carriesCorrect = true;
+          if (currentTaskCarryKeys.length > 0) {
+              carriesCorrect = currentTaskCarryKeys.every(key => {
+                  const cell = grid[key];
+                  const expected = carryMap[key];
+                  return isCarryCorrect(cell?.carry, expected);
+              });
+          }
+          
+          if (solutionCorrect && carriesCorrect) {
               // Task completed!
               // Clear current keys so we don't trigger again immediately
               setCurrentTaskSolutionKeys([]);
+              setCurrentTaskCarryKeys([]);
               
               // Small delay for visual feedback, then generate next
               setTimeout(() => {
@@ -322,7 +357,7 @@ export function MathGrid() {
               }, 500);
           }
       }
-  }, [grid, currentTaskSolutionKeys, solutionMap]);
+  }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, generateTask]);
 
   const updateCell = (r: number, c: number, updates: Partial<CellData>) => {
     const key = getCellKey(r, c);
@@ -330,38 +365,42 @@ export function MathGrid() {
     setGrid(prev => {
       const current = prev[key] || { value: '', underlined: false };
       
-      if (isCarryMode) {
-         if (updates.value !== undefined) {
-             // If backspace (empty string), clear carry
-             // If typing, append to carry or replace? 
-             // The user wants to type "-1".
-             // If we just use the input value, it's length 1.
-             // We need to capture the key press for carry mode instead of using onChange for the input?
-             // Or we can use a prompt? No, that's bad UX.
-             // Let's use a custom input handling for carry mode.
-             // Actually, the input maxLength is 1. We need to bypass that for carry mode?
-             // But the input is for the main value.
-             // The carry is displayed separately.
-             // If isCarryMode is true, we should probably trap the keydown and update carry manually, 
-             // and prevent default input behavior for the main value.
-             return prev;
-         }
+      if (isCarryMode && updates.value !== undefined) {
+          // Prevent main value update in carry mode if it was triggered by onChange
+          // But if we call updateCell explicitly with carry, we should allow it.
+          // The check `updates.value !== undefined` distinguishes normal input from custom calls.
+          return prev;
       }
       
       // Normal update
       const newValue = updates.value !== undefined ? updates.value : current.value;
+      const newCarry = updates.carry !== undefined ? updates.carry : current.carry;
       
       // Validation
       let isValid = current.isValid;
       if (solutionMap[key] !== undefined && updates.value !== undefined) {
           isValid = newValue === solutionMap[key];
-      } else if (solutionMap[key] === undefined) {
+      } else if (solutionMap[key] === undefined && updates.value !== undefined) {
           isValid = null; // Reset if not part of solution
+      }
+      
+      // Carry Validation
+      let isCarryValid = current.isCarryValid;
+      if (updates.carry !== undefined) {
+          if (carryMap[key] !== undefined) {
+              isCarryValid = isCarryCorrect(newCarry, carryMap[key]);
+          } else if (newCarry) {
+              // Carry entered but not expected
+              isCarryValid = false;
+          } else {
+              // Carry cleared and not expected
+              isCarryValid = null;
+          }
       }
       
       return {
         ...prev,
-        [key]: { ...current, ...updates, isValid }
+        [key]: { ...current, ...updates, isValid, isCarryValid }
       };
     });
   };
@@ -455,6 +494,11 @@ export function MathGrid() {
         const minC = Math.min(selectionStart.c, selectionEnd.c);
         const maxC = Math.max(selectionStart.c, selectionEnd.c);
 
+        // We need to update each cell individually to trigger validation logic properly
+        // or replicate validation logic here. 
+        // Calling updateCell in a loop causes multiple re-renders.
+        // Let's do a bulk update but with validation logic.
+        
         setGrid(prev => {
           const next = { ...prev };
           for (let r = minR; r <= maxR; r++) {
@@ -462,9 +506,22 @@ export function MathGrid() {
               const key = getCellKey(r, c);
               if (next[key]) {
                  if (isCarryMode) {
-                     next[key] = { ...next[key], carry: undefined };
+                     // Clearing carry
+                     const expectedCarry = carryMap[key];
+                     let isCarryValid = null;
+                     if (expectedCarry !== undefined) {
+                         // Expected but cleared -> Invalid
+                         isCarryValid = false;
+                     }
+                     next[key] = { ...next[key], carry: undefined, isCarryValid };
                  } else {
-                     next[key] = { ...next[key], value: '' };
+                     // Clearing value
+                     const expectedVal = solutionMap[key];
+                     let isValid = null;
+                     if (expectedVal !== undefined) {
+                         isValid = false; // Expected but cleared
+                     }
+                     next[key] = { ...next[key], value: '', isValid };
                  }
               }
             }
@@ -476,15 +533,9 @@ export function MathGrid() {
         // Handle carry input directly
         e.preventDefault();
         const key = getCellKey(r, c);
-        setGrid(prev => {
-            const current = prev[key] || { value: '', underlined: false };
-            const currentCarry = current.carry || '';
-            // Append char
-            return {
-                ...prev,
-                [key]: { ...current, carry: currentCarry + e.key }
-            };
-        });
+        const current = grid[key] || { value: '', underlined: false };
+        const currentCarry = current.carry || '';
+        updateCell(r, c, { carry: currentCarry + e.key });
     }
   };
 
@@ -534,6 +585,12 @@ export function MathGrid() {
       setGrid({});
     }
   };
+
+  const today = new Date().toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
 
   return (
     <div className="flex flex-col h-screen bg-stone-100 font-sans text-stone-900">
@@ -719,14 +776,19 @@ export function MathGrid() {
       </div>
 
       {/* Grid Area */}
-      <div className="flex-1 overflow-auto p-8 flex justify-center bg-stone-100">
+      <div className="flex-1 overflow-auto p-8 flex justify-center bg-stone-100 relative">
+        <div className="absolute top-4 right-8 text-stone-500 font-mono text-sm pointer-events-none">
+            {today}
+        </div>
         <div 
           className="bg-white shadow-lg border-t border-l border-blue-200 relative"
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${COLS}, 32px)`,
             gridTemplateRows: `repeat(${gridRows}, 32px)`,
-            width: 'fit-content'
+            width: 'fit-content',
+            height: `${gridRows * 32}px`,
+            minHeight: '100%'
           }}
         >
           {Array.from({ length: gridRows }).map((_, r) => (
@@ -750,7 +812,12 @@ export function MathGrid() {
                   onMouseEnter={() => handleMouseEnter(r, c)}
                 >
                   {cellData.carry && (
-                    <span className="absolute top-0 left-0.5 text-[10px] leading-none text-stone-500 font-mono pointer-events-none">
+                    <span className={cn(
+                        "absolute top-0 left-0.5 text-[10px] leading-none font-mono pointer-events-none",
+                        cellData.isCarryValid === true && "text-green-600",
+                        cellData.isCarryValid === false && "text-red-500",
+                        cellData.isCarryValid === null || cellData.isCarryValid === undefined && "text-stone-500"
+                    )}>
                       {cellData.carry}
                     </span>
                   )}
