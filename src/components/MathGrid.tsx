@@ -32,6 +32,11 @@ export function MathGrid() {
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const [showTaskMenu, setShowTaskMenu] = useState(false);
   
+  // Auto-Generation State
+  const [nextStartRow, setNextStartRow] = useState(2);
+  const [currentTaskSolutionKeys, setCurrentTaskSolutionKeys] = useState<string[]>([]);
+  const [gridRows, setGridRows] = useState(25);
+  
   // Refs for cell inputs to manage focus
   const cellRefs = useRef<(HTMLInputElement | null)[][]>([]);
 
@@ -42,12 +47,25 @@ export function MathGrid() {
 
   const getCellKey = (r: number, c: number) => `${r},${c}`;
 
-  const generateTask = () => {
-    // Clear grid and solution
-    setGrid({});
-    setSolutionMap({});
-    setCarryMap({});
+  const generateTask = (append = false) => {
+    // Determine start row
+    let startR = 2;
+    if (append) {
+        startR = nextStartRow;
+    } else {
+        // Reset if not appending
+        setGrid({});
+        setSolutionMap({});
+        setCarryMap({});
+        setNextStartRow(2);
+        setGridRows(25);
+    }
     
+    // Ensure grid has enough rows
+    if (startR + 10 > gridRows) {
+        setGridRows(prev => Math.max(prev, startR + 15));
+    }
+
     let op = '';
     
     if (taskType === 'mixed') {
@@ -59,21 +77,20 @@ export function MathGrid() {
         op = taskType;
     }
     
-    const startR = 2;
     const startC = 2;
     
     let newGrid: Record<string, CellData> = {};
     let newSolution: Record<string, string> = {};
     let newCarry: Record<string, string> = {};
+    let taskHeight = 0;
     
     if (op === '+' || op === '-') {
       // Vertical Addition/Subtraction
-      setAutoMoveDir('left'); // Set direction to left for vertical ops
+      setAutoMoveDir('left'); 
       
       const a = Math.floor(Math.random() * 899) + 100; // 3 digits
       const b = Math.floor(Math.random() * 899) + 100; // 3 digits
       
-      // Ensure result is positive for subtraction
       const [num1, num2] = op === '-' && b > a ? [b, a] : [a, b];
       const result = op === '+' ? num1 + num2 : num1 - num2;
       
@@ -81,7 +98,6 @@ export function MathGrid() {
       const str2 = num2.toString();
       const strRes = result.toString();
       
-      // Alignment
       const alignCol = startC + 4;
       
       // Place num1
@@ -97,7 +113,7 @@ export function MathGrid() {
         newGrid[getCellKey(startR + 1, alignCol - str2.length + 1 + i)] = { value: str2[i], underlined: true };
       }
       
-      // Underline empty space
+      // Underline
       for(let c = startC; c <= alignCol; c++) {
           const key = getCellKey(startR + 1, c);
           if (!newGrid[key]) {
@@ -108,13 +124,10 @@ export function MathGrid() {
       }
 
       // Expected Result & Carries
-      // We need to simulate column by column from right to left to find carries
       let currentCarry = 0;
       const maxLen = Math.max(str1.length, str2.length);
       
-      for (let i = 0; i < maxLen + 1; i++) { // +1 for potential final carry
-          // Digits at position (from right)
-          // str1 index: str1.length - 1 - i
+      for (let i = 0; i < maxLen + 1; i++) { 
           const d1 = i < str1.length ? parseInt(str1[str1.length - 1 - i]) : 0;
           const d2 = i < str2.length ? parseInt(str2[str2.length - 1 - i]) : 0;
           
@@ -126,8 +139,6 @@ export function MathGrid() {
               colRes = sum % 10;
               nextCarry = Math.floor(sum / 10);
           } else {
-              // Subtraction: d1 - d2 - currentCarry
-              // If d1 < d2 + currentCarry, we borrow (carry)
               let val = d1 - d2 - currentCarry;
               if (val < 0) {
                   val += 10;
@@ -138,32 +149,12 @@ export function MathGrid() {
               colRes = val;
           }
           
-          // Position in grid
-          // alignCol is the rightmost column
           const col = alignCol - i;
           const row = startR + 2;
           
-          // Store result if it's part of the number (don't print leading zero unless it's the only digit)
           if (i < strRes.length) {
              newSolution[getCellKey(row, col)] = colRes.toString();
              
-             // If there is a carry for the NEXT column (nextCarry > 0), 
-             // where do we display it?
-             // User wants it "at this place" (where we type the result?).
-             // Or does "at this place" mean the column where the carry is generated?
-             // Usually carry is noted in the column it affects (the next one to the left).
-             // But the user said "if I enter a number and a carry is necessary *at this place*".
-             // This implies checking if the current column *generated* a carry?
-             // Or if the current column *needs* a carry input?
-             // Let's assume we store the carry that needs to be entered in this column.
-             // In addition, the carry entered in col `i` is the one generated from col `i-1` (right).
-             // Wait, no.
-             // 5 + 7. Col 0. Sum 12. Write 2. Carry 1 goes to Col -1.
-             // So when I am at Col 0, I write 2. I don't write carry here.
-             // I write carry at Col -1.
-             // So at Col -1, I write the result (from next step) AND the carry (from this step).
-             
-             // So, `newCarry` at `col` should be the carry coming FROM the right (`currentCarry`).
              if (currentCarry > 0) {
                  newCarry[getCellKey(row, col)] = currentCarry.toString();
              }
@@ -171,18 +162,17 @@ export function MathGrid() {
           
           currentCarry = nextCarry;
       }
+      taskHeight = 3; // num1, num2, result
       
     } else {
       // Horizontal Multiplication/Division
-      setAutoMoveDir('right'); // Set direction to right
+      setAutoMoveDir('right');
       
       let num1, num2, result;
       
       if (op === '*') {
         if (taskType === '1x1' && selectedTable) {
-            // 1x1 Mode
-            const factor = Math.floor(Math.random() * 10) + 1; // 1-10
-            // Randomize order: 7*5 or 5*7
+            const factor = Math.floor(Math.random() * 10) + 1; 
             if (Math.random() > 0.5) {
                 num1 = selectedTable;
                 num2 = factor;
@@ -192,7 +182,6 @@ export function MathGrid() {
             }
             result = num1 * num2;
         } else {
-            // Standard Multiplication
             const a = Math.floor(Math.random() * 10) + 2;
             const b = Math.floor(Math.random() * 10) + 2;
             num1 = a;
@@ -211,19 +200,16 @@ export function MathGrid() {
         for (let i = 0; i < resStr.length; i++) {
           newSolution[getCellKey(startR, resStartC + i)] = resStr[i];
         }
+        taskHeight = 1;
       } else { // Division
-        // Generate division task with clean integer result
-        // Example: 125 : 5 = 25
-        result = Math.floor(Math.random() * 20) + 2; // Quotient
+        result = Math.floor(Math.random() * 20) + 2; 
         num2 = Math.floor(Math.random() * 11) + 2; 
-        num1 = result * num2; // Dividend
+        num1 = result * num2; 
         
         const dividendStr = num1.toString();
         const divisorStr = num2.toString();
         const quotientStr = result.toString();
         
-        // Write Task Row: "125:5="
-        // No spaces
         let currentC = startC;
         for(let i=0; i<dividendStr.length; i++) newGrid[getCellKey(startR, currentC++)] = { value: dividendStr[i], underlined: false };
         newGrid[getCellKey(startR, currentC++)] = { value: ':', underlined: false };
@@ -232,8 +218,7 @@ export function MathGrid() {
         
         for(let i=0; i<quotientStr.length; i++) newSolution[getCellKey(startR, currentC + i)] = quotientStr[i];
 
-        // Generate Intermediate Steps (Long Division)
-        // We need to simulate the process
+        // Long Division Steps
         let remainderVal = 0;
         let hasStarted = false;
         let currentRow = startR + 1;
@@ -275,13 +260,48 @@ export function MathGrid() {
                 currentRow++; 
             }
         }
+        taskHeight = currentRow - startR + 1;
       }
     }
     
-    setGrid(newGrid);
-    setSolutionMap(newSolution);
-    setCarryMap(newCarry);
+    if (append) {
+        setGrid(prev => ({ ...prev, ...newGrid }));
+        setSolutionMap(prev => ({ ...prev, ...newSolution }));
+        setCarryMap(prev => ({ ...prev, ...newCarry }));
+    } else {
+        setGrid(newGrid);
+        setSolutionMap(newSolution);
+        setCarryMap(newCarry);
+    }
+    
+    // Update next start row (current start + height + 2 padding)
+    setNextStartRow(startR + taskHeight + 1);
+    
+    // Track keys for the NEW task only
+    setCurrentTaskSolutionKeys(Object.keys(newSolution));
   };
+
+  // Check for task completion
+  useEffect(() => {
+      if (currentTaskSolutionKeys.length > 0) {
+          const allCorrect = currentTaskSolutionKeys.every(key => {
+              const cell = grid[key];
+              const expected = solutionMap[key];
+              return cell && cell.value === expected;
+          });
+          
+          if (allCorrect) {
+              // Task completed!
+              // Clear current keys so we don't trigger again immediately
+              setCurrentTaskSolutionKeys([]);
+              
+              // Small delay for visual feedback, then generate next
+              setTimeout(() => {
+                  generateTask(true);
+              }, 500);
+          }
+      }
+  }, [grid, currentTaskSolutionKeys, solutionMap]);
 
   const updateCell = (r: number, c: number, updates: Partial<CellData>) => {
     const key = getCellKey(r, c);
@@ -536,7 +556,7 @@ export function MathGrid() {
           <div className="relative">
               <div className="flex items-center bg-stone-100 rounded p-0.5">
                   <button
-                    onClick={generateTask}
+                    onClick={() => generateTask(false)}
                     className="p-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors"
                     title="Neue Aufgabe generieren"
                   >
@@ -684,11 +704,11 @@ export function MathGrid() {
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${COLS}, 32px)`,
-            gridTemplateRows: `repeat(${ROWS}, 32px)`,
+            gridTemplateRows: `repeat(${gridRows}, 32px)`,
             width: 'fit-content'
           }}
         >
-          {Array.from({ length: ROWS }).map((_, r) => (
+          {Array.from({ length: gridRows }).map((_, r) => (
             Array.from({ length: COLS }).map((_, c) => {
               const key = getCellKey(r, c);
               const cellData = grid[key] || { value: '', underlined: false };
