@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
-import { Eraser, Underline, Trash2, Download } from 'lucide-react';
+import { Eraser, Underline, Trash2, Download, RefreshCw, CheckCircle, Superscript, ArrowLeft, ArrowRight, ArrowDown, Ban } from 'lucide-react';
 
 interface CellData {
   value: string;
   underlined: boolean;
+  carry?: string;
+  isValid?: boolean | null;
 }
 
 // Grid dimensions
@@ -18,6 +20,10 @@ export function MathGrid() {
   const [selectionStart, setSelectionStart] = useState<{ r: number; c: number } | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<{ r: number; c: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [solutionMap, setSolutionMap] = useState<Record<string, string>>({});
+  const [carryMap, setCarryMap] = useState<Record<string, string>>({});
+  const [isCarryMode, setIsCarryMode] = useState(false);
+  const [autoMoveDir, setAutoMoveDir] = useState<'left' | 'right' | 'down' | 'none'>('right');
   
   // Refs for cell inputs to manage focus
   const cellRefs = useRef<(HTMLInputElement | null)[][]>([]);
@@ -29,12 +35,261 @@ export function MathGrid() {
 
   const getCellKey = (r: number, c: number) => `${r},${c}`;
 
+  const generateTask = () => {
+    // Clear grid and solution
+    setGrid({});
+    setSolutionMap({});
+    setCarryMap({});
+    
+    const operations = ['+', '-', '*', ':'];
+    const op = operations[Math.floor(Math.random() * operations.length)];
+    const startR = 2;
+    const startC = 2;
+    
+    let newGrid: Record<string, CellData> = {};
+    let newSolution: Record<string, string> = {};
+    let newCarry: Record<string, string> = {};
+    
+    if (op === '+' || op === '-') {
+      // Vertical Addition/Subtraction
+      setAutoMoveDir('left'); // Set direction to left for vertical ops
+      
+      const a = Math.floor(Math.random() * 899) + 100; // 3 digits
+      const b = Math.floor(Math.random() * 899) + 100; // 3 digits
+      
+      // Ensure result is positive for subtraction
+      const [num1, num2] = op === '-' && b > a ? [b, a] : [a, b];
+      const result = op === '+' ? num1 + num2 : num1 - num2;
+      
+      const str1 = num1.toString();
+      const str2 = num2.toString();
+      const strRes = result.toString();
+      
+      // Alignment
+      const alignCol = startC + 4;
+      
+      // Place num1
+      for (let i = 0; i < str1.length; i++) {
+        newGrid[getCellKey(startR, alignCol - str1.length + 1 + i)] = { value: str1[i], underlined: false };
+      }
+      
+      // Place op
+      newGrid[getCellKey(startR + 1, startC)] = { value: op, underlined: false };
+      
+      // Place num2
+      for (let i = 0; i < str2.length; i++) {
+        newGrid[getCellKey(startR + 1, alignCol - str2.length + 1 + i)] = { value: str2[i], underlined: true };
+      }
+      
+      // Underline empty space
+      for(let c = startC; c <= alignCol; c++) {
+          const key = getCellKey(startR + 1, c);
+          if (!newGrid[key]) {
+              newGrid[key] = { value: '', underlined: true };
+          } else {
+              newGrid[key].underlined = true;
+          }
+      }
+
+      // Expected Result & Carries
+      // We need to simulate column by column from right to left to find carries
+      let currentCarry = 0;
+      const maxLen = Math.max(str1.length, str2.length);
+      
+      for (let i = 0; i < maxLen + 1; i++) { // +1 for potential final carry
+          // Digits at position (from right)
+          // str1 index: str1.length - 1 - i
+          const d1 = i < str1.length ? parseInt(str1[str1.length - 1 - i]) : 0;
+          const d2 = i < str2.length ? parseInt(str2[str2.length - 1 - i]) : 0;
+          
+          let colRes = 0;
+          let nextCarry = 0;
+          
+          if (op === '+') {
+              const sum = d1 + d2 + currentCarry;
+              colRes = sum % 10;
+              nextCarry = Math.floor(sum / 10);
+          } else {
+              // Subtraction: d1 - d2 - currentCarry
+              // If d1 < d2 + currentCarry, we borrow (carry)
+              let val = d1 - d2 - currentCarry;
+              if (val < 0) {
+                  val += 10;
+                  nextCarry = 1;
+              } else {
+                  nextCarry = 0;
+              }
+              colRes = val;
+          }
+          
+          // Position in grid
+          // alignCol is the rightmost column
+          const col = alignCol - i;
+          const row = startR + 2;
+          
+          // Store result if it's part of the number (don't print leading zero unless it's the only digit)
+          if (i < strRes.length) {
+             newSolution[getCellKey(row, col)] = colRes.toString();
+             
+             // If there is a carry for the NEXT column (nextCarry > 0), 
+             // where do we display it?
+             // User wants it "at this place" (where we type the result?).
+             // Or does "at this place" mean the column where the carry is generated?
+             // Usually carry is noted in the column it affects (the next one to the left).
+             // But the user said "if I enter a number and a carry is necessary *at this place*".
+             // This implies checking if the current column *generated* a carry?
+             // Or if the current column *needs* a carry input?
+             // Let's assume we store the carry that needs to be entered in this column.
+             // In addition, the carry entered in col `i` is the one generated from col `i-1` (right).
+             // Wait, no.
+             // 5 + 7. Col 0. Sum 12. Write 2. Carry 1 goes to Col -1.
+             // So when I am at Col 0, I write 2. I don't write carry here.
+             // I write carry at Col -1.
+             // So at Col -1, I write the result (from next step) AND the carry (from this step).
+             
+             // So, `newCarry` at `col` should be the carry coming FROM the right (`currentCarry`).
+             if (currentCarry > 0) {
+                 newCarry[getCellKey(row, col)] = currentCarry.toString();
+             }
+          }
+          
+          currentCarry = nextCarry;
+      }
+      
+    } else {
+      // Horizontal Multiplication/Division
+      setAutoMoveDir('right'); // Set direction to right
+      
+      const a = Math.floor(Math.random() * 10) + 2;
+      const b = Math.floor(Math.random() * 10) + 2;
+      
+      let num1, num2, result;
+      
+      if (op === '*') {
+        num1 = a;
+        num2 = b;
+        result = a * b;
+        
+        const taskStr = `${num1}${op}${num2}=`;
+        taskStr.split('').forEach((char, i) => {
+          newGrid[getCellKey(startR, startC + i)] = { value: char, underlined: false };
+        });
+        
+        const resStr = result.toString();
+        const resStartC = startC + taskStr.length;
+        
+        for (let i = 0; i < resStr.length; i++) {
+          newSolution[getCellKey(startR, resStartC + i)] = resStr[i];
+        }
+      } else { // Division
+        // ... (Division logic remains same, just ensure setAutoMoveDir('right'))
+        // Copying previous division logic...
+        result = Math.floor(Math.random() * 20) + 2; 
+        num2 = Math.floor(Math.random() * 11) + 2; 
+        num1 = result * num2; 
+        
+        const dividendStr = num1.toString();
+        const divisorStr = num2.toString();
+        const quotientStr = result.toString();
+        
+        let currentC = startC;
+        for(let i=0; i<dividendStr.length; i++) newGrid[getCellKey(startR, currentC++)] = { value: dividendStr[i], underlined: false };
+        newGrid[getCellKey(startR, currentC++)] = { value: ':', underlined: false };
+        for(let i=0; i<divisorStr.length; i++) newGrid[getCellKey(startR, currentC++)] = { value: divisorStr[i], underlined: false };
+        newGrid[getCellKey(startR, currentC++)] = { value: '=', underlined: false };
+        
+        for(let i=0; i<quotientStr.length; i++) newSolution[getCellKey(startR, currentC + i)] = quotientStr[i];
+
+        // Long Division Steps
+        let remainderVal = 0;
+        let hasStarted = false;
+        let currentRow = startR + 1;
+        
+        for (let i = 0; i < dividendStr.length; i++) {
+            const digit = parseInt(dividendStr[i]);
+            remainderVal = remainderVal * 10 + digit;
+            
+            if (!hasStarted) {
+                if (remainderVal >= num2) hasStarted = true;
+                else continue; 
+            }
+            
+            const qDigit = Math.floor(remainderVal / num2);
+            const product = qDigit * num2;
+            const newRemainder = remainderVal - product;
+            
+            if (i > 0 && currentRow > startR + 1) {
+                 const valStr = remainderVal.toString();
+                 for(let k=0; k<valStr.length; k++) {
+                     newSolution[getCellKey(currentRow-1, startC + i - (valStr.length-1) + k)] = valStr[k];
+                 }
+            }
+            
+            const productStr = product.toString();
+            for(let k=0; k<productStr.length; k++) {
+                 newSolution[getCellKey(currentRow, startC + i - (productStr.length-1) + k)] = productStr[k];
+            }
+            currentRow++;
+            
+            remainderVal = newRemainder;
+            
+            if (i === dividendStr.length - 1) {
+                const finalStr = remainderVal.toString();
+                for(let k=0; k<finalStr.length; k++) {
+                     newSolution[getCellKey(currentRow, startC + i - (finalStr.length-1) + k)] = finalStr[k];
+                }
+            } else {
+                currentRow++; 
+            }
+        }
+      }
+    }
+    
+    setGrid(newGrid);
+    setSolutionMap(newSolution);
+    setCarryMap(newCarry);
+  };
+
   const updateCell = (r: number, c: number, updates: Partial<CellData>) => {
     const key = getCellKey(r, c);
-    setGrid(prev => ({
-      ...prev,
-      [key]: { ...(prev[key] || { value: '', underlined: false }), ...updates }
-    }));
+    
+    setGrid(prev => {
+      const current = prev[key] || { value: '', underlined: false };
+      
+      if (isCarryMode) {
+         if (updates.value !== undefined) {
+             // If backspace (empty string), clear carry
+             // If typing, append to carry or replace? 
+             // The user wants to type "-1".
+             // If we just use the input value, it's length 1.
+             // We need to capture the key press for carry mode instead of using onChange for the input?
+             // Or we can use a prompt? No, that's bad UX.
+             // Let's use a custom input handling for carry mode.
+             // Actually, the input maxLength is 1. We need to bypass that for carry mode?
+             // But the input is for the main value.
+             // The carry is displayed separately.
+             // If isCarryMode is true, we should probably trap the keydown and update carry manually, 
+             // and prevent default input behavior for the main value.
+             return prev;
+         }
+      }
+      
+      // Normal update
+      const newValue = updates.value !== undefined ? updates.value : current.value;
+      
+      // Validation
+      let isValid = current.isValid;
+      if (solutionMap[key] !== undefined && updates.value !== undefined) {
+          isValid = newValue === solutionMap[key];
+      } else if (solutionMap[key] === undefined) {
+          isValid = null; // Reset if not part of solution
+      }
+      
+      return {
+        ...prev,
+        [key]: { ...current, ...updates, isValid }
+      };
+    });
   };
 
   const handleMouseDown = (r: number, c: number) => {
@@ -71,6 +326,13 @@ export function MathGrid() {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, r: number, c: number) => {
+    // Toggle Carry Mode with Space
+    if (e.key === ' ') {
+      e.preventDefault();
+      setIsCarryMode(!isCarryMode);
+      return;
+    }
+
     // Navigation
     if (e.key === 'ArrowUp') {
       e.preventDefault();
@@ -125,13 +387,30 @@ export function MathGrid() {
             for (let c = minC; c <= maxC; c++) {
               const key = getCellKey(r, c);
               if (next[key]) {
-                 next[key] = { ...next[key], value: '' };
+                 if (isCarryMode) {
+                     next[key] = { ...next[key], carry: undefined };
+                 } else {
+                     next[key] = { ...next[key], value: '' };
+                 }
               }
             }
           }
           return next;
         });
       }
+    } else if (isCarryMode && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Handle carry input directly
+        e.preventDefault();
+        const key = getCellKey(r, c);
+        setGrid(prev => {
+            const current = prev[key] || { value: '', underlined: false };
+            const currentCarry = current.carry || '';
+            // Append char
+            return {
+                ...prev,
+                [key]: { ...current, carry: currentCarry + e.key }
+            };
+        });
     }
   };
 
@@ -222,6 +501,60 @@ export function MathGrid() {
           <div className="w-px h-6 bg-stone-200 mx-2" />
 
           <button
+            onClick={generateTask}
+            className="p-2 rounded hover:bg-stone-100 text-stone-600 transition-colors"
+            title="Neue Aufgabe"
+          >
+            <RefreshCw size={20} />
+          </button>
+
+          <button
+            onClick={() => setIsCarryMode(!isCarryMode)}
+            className={cn(
+              "p-2 rounded transition-colors",
+              isCarryMode ? "bg-amber-100 text-amber-700" : "hover:bg-stone-100 text-stone-600"
+            )}
+            title="Merkzahl-Modus (Übertrag) [Leertaste]"
+          >
+            <Superscript size={20} />
+          </button>
+
+          <div className="w-px h-6 bg-stone-200 mx-2" />
+
+          <div className="flex items-center bg-stone-100 rounded p-0.5">
+              <button
+                onClick={() => setAutoMoveDir('left')}
+                className={cn("p-1.5 rounded", autoMoveDir === 'left' ? "bg-white shadow text-blue-600" : "text-stone-500 hover:text-stone-700")}
+                title="Auto-Move Left"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <button
+                onClick={() => setAutoMoveDir('right')}
+                className={cn("p-1.5 rounded", autoMoveDir === 'right' ? "bg-white shadow text-blue-600" : "text-stone-500 hover:text-stone-700")}
+                title="Auto-Move Right"
+              >
+                <ArrowRight size={16} />
+              </button>
+              <button
+                onClick={() => setAutoMoveDir('down')}
+                className={cn("p-1.5 rounded", autoMoveDir === 'down' ? "bg-white shadow text-blue-600" : "text-stone-500 hover:text-stone-700")}
+                title="Auto-Move Down"
+              >
+                <ArrowDown size={16} />
+              </button>
+              <button
+                onClick={() => setAutoMoveDir('none')}
+                className={cn("p-1.5 rounded", autoMoveDir === 'none' ? "bg-white shadow text-blue-600" : "text-stone-500 hover:text-stone-700")}
+                title="Auto-Move Off"
+              >
+                <Ban size={16} />
+              </button>
+          </div>
+
+          <div className="w-px h-6 bg-stone-200 mx-2" />
+
+          <button
             onClick={clearGrid}
             className="p-2 rounded hover:bg-red-50 text-stone-600 hover:text-red-600 transition-colors"
             title="Alles löschen"
@@ -253,6 +586,7 @@ export function MathGrid() {
               
               const isUnderlined = cellData.underlined;
               const selected = isSelected(r, c);
+              const isValid = cellData.isValid;
               
               return (
                 <div 
@@ -265,6 +599,11 @@ export function MathGrid() {
                   onMouseDown={() => handleMouseDown(r, c)}
                   onMouseEnter={() => handleMouseEnter(r, c)}
                 >
+                  {cellData.carry && (
+                    <span className="absolute top-0 left-0.5 text-[10px] leading-none text-stone-500 font-mono pointer-events-none">
+                      {cellData.carry}
+                    </span>
+                  )}
                   <input
                     ref={el => {
                       if (cellRefs.current[r]) {
@@ -274,26 +613,39 @@ export function MathGrid() {
                     type="text"
                     className={cn(
                       "w-full h-full text-center outline-none transition-colors font-mono text-lg leading-none bg-transparent p-0 m-0 cursor-default select-none",
-                      // Only show cursor/caret if it's the focused cell AND we are not dragging a selection
-                      // But we need input to work. 
-                      // Actually, for multi-select, we might want to disable pointer events on input while dragging?
-                      // Or just let the div handle mouse events.
-                      // To let div handle mouse events, we can make input pointer-events-none when not focused?
-                      // Or just rely on bubbling? Input stops propagation of some events.
-                      // Let's try pointer-events-none on input unless it is the single focused cell?
-                      // No, that makes it hard to click to focus.
-                      // Let's just put mouse handlers on the parent div and maybe make input transparent to clicks?
-                      // No, input needs to receive focus.
+                      isValid === false && "text-red-500",
+                      isValid === true && "text-green-600"
                     )}
                     style={{
                       caretColor: selected && !isDragging && focusedCell?.r === r && focusedCell?.c === c ? 'auto' : 'transparent'
                     }}
                     value={cellData.value}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      updateCell(r, c, { value: val });
-                      if (val.length === 1 && c < COLS - 1) {
-                        cellRefs.current[r][c + 1]?.focus();
+                      if (!isCarryMode) {
+                          const val = e.target.value;
+                          updateCell(r, c, { value: val });
+                          
+                          // Smart Carry Logic
+                          const key = getCellKey(r, c);
+                          const expectedCarry = carryMap[key];
+                          const currentCarry = grid[key]?.carry;
+                          
+                          // If a carry is expected and NOT yet entered, switch to carry mode and stay here
+                          if (expectedCarry && !currentCarry) {
+                              setIsCarryMode(true);
+                              // Do not auto-move
+                          } else {
+                              // Auto-move logic
+                              if (val.length === 1) {
+                                  if (autoMoveDir === 'right' && c < COLS - 1) {
+                                      cellRefs.current[r][c + 1]?.focus();
+                                  } else if (autoMoveDir === 'left' && c > 0) {
+                                      cellRefs.current[r][c - 1]?.focus();
+                                  } else if (autoMoveDir === 'down' && r < ROWS - 1) {
+                                      cellRefs.current[r + 1][c]?.focus();
+                                  }
+                              }
+                          }
                       }
                     }}
                     onKeyDown={(e) => {
@@ -309,6 +661,7 @@ export function MathGrid() {
                             setFocusedCell({ r, c });
                             setSelectionStart({ r, c });
                             setSelectionEnd({ r, c });
+                            setIsCarryMode(false); // Reset carry mode on new cell focus
                             e.target.select();
                         }
                     }}
