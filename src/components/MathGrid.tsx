@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
-import { Eraser, Underline, Trash2, Download, RefreshCw, CheckCircle, Superscript, ArrowLeft, ArrowRight, ArrowDown, Ban } from 'lucide-react';
+import { Eraser, Underline, Trash2, Download, RefreshCw, CheckCircle, Superscript, ArrowLeft, ArrowRight, ArrowDown, Ban, Settings, ChevronDown } from 'lucide-react';
 
 interface CellData {
   value: string;
@@ -13,6 +13,8 @@ interface CellData {
 const ROWS = 25;
 const COLS = 30;
 
+type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1';
+
 export function MathGrid() {
   // Initialize grid state
   const [grid, setGrid] = useState<Record<string, CellData>>({});
@@ -24,6 +26,11 @@ export function MathGrid() {
   const [carryMap, setCarryMap] = useState<Record<string, string>>({});
   const [isCarryMode, setIsCarryMode] = useState(false);
   const [autoMoveDir, setAutoMoveDir] = useState<'left' | 'right' | 'down' | 'none'>('right');
+  
+  // Task Configuration State
+  const [taskType, setTaskType] = useState<TaskType>('mixed');
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [showTaskMenu, setShowTaskMenu] = useState(false);
   
   // Refs for cell inputs to manage focus
   const cellRefs = useRef<(HTMLInputElement | null)[][]>([]);
@@ -41,8 +48,17 @@ export function MathGrid() {
     setSolutionMap({});
     setCarryMap({});
     
-    const operations = ['+', '-', '*', ':'];
-    const op = operations[Math.floor(Math.random() * operations.length)];
+    let op = '';
+    
+    if (taskType === 'mixed') {
+        const operations = ['+', '-', '*', ':'];
+        op = operations[Math.floor(Math.random() * operations.length)];
+    } else if (taskType === '1x1') {
+        op = '*';
+    } else {
+        op = taskType;
+    }
+    
     const startR = 2;
     const startC = 2;
     
@@ -160,15 +176,29 @@ export function MathGrid() {
       // Horizontal Multiplication/Division
       setAutoMoveDir('right'); // Set direction to right
       
-      const a = Math.floor(Math.random() * 10) + 2;
-      const b = Math.floor(Math.random() * 10) + 2;
-      
       let num1, num2, result;
       
       if (op === '*') {
-        num1 = a;
-        num2 = b;
-        result = a * b;
+        if (taskType === '1x1' && selectedTable) {
+            // 1x1 Mode
+            const factor = Math.floor(Math.random() * 10) + 1; // 1-10
+            // Randomize order: 7*5 or 5*7
+            if (Math.random() > 0.5) {
+                num1 = selectedTable;
+                num2 = factor;
+            } else {
+                num1 = factor;
+                num2 = selectedTable;
+            }
+            result = num1 * num2;
+        } else {
+            // Standard Multiplication
+            const a = Math.floor(Math.random() * 10) + 2;
+            const b = Math.floor(Math.random() * 10) + 2;
+            num1 = a;
+            num2 = b;
+            result = a * b;
+        }
         
         const taskStr = `${num1}${op}${num2}=`;
         taskStr.split('').forEach((char, i) => {
@@ -182,16 +212,18 @@ export function MathGrid() {
           newSolution[getCellKey(startR, resStartC + i)] = resStr[i];
         }
       } else { // Division
-        // ... (Division logic remains same, just ensure setAutoMoveDir('right'))
-        // Copying previous division logic...
-        result = Math.floor(Math.random() * 20) + 2; 
+        // Generate division task with clean integer result
+        // Example: 125 : 5 = 25
+        result = Math.floor(Math.random() * 20) + 2; // Quotient
         num2 = Math.floor(Math.random() * 11) + 2; 
-        num1 = result * num2; 
+        num1 = result * num2; // Dividend
         
         const dividendStr = num1.toString();
         const divisorStr = num2.toString();
         const quotientStr = result.toString();
         
+        // Write Task Row: "125:5="
+        // No spaces
         let currentC = startC;
         for(let i=0; i<dividendStr.length; i++) newGrid[getCellKey(startR, currentC++)] = { value: dividendStr[i], underlined: false };
         newGrid[getCellKey(startR, currentC++)] = { value: ':', underlined: false };
@@ -200,7 +232,8 @@ export function MathGrid() {
         
         for(let i=0; i<quotientStr.length; i++) newSolution[getCellKey(startR, currentC + i)] = quotientStr[i];
 
-        // Long Division Steps
+        // Generate Intermediate Steps (Long Division)
+        // We need to simulate the process
         let remainderVal = 0;
         let hasStarted = false;
         let currentRow = startR + 1;
@@ -500,13 +533,89 @@ export function MathGrid() {
 
           <div className="w-px h-6 bg-stone-200 mx-2" />
 
-          <button
-            onClick={generateTask}
-            className="p-2 rounded hover:bg-stone-100 text-stone-600 transition-colors"
-            title="Neue Aufgabe"
-          >
-            <RefreshCw size={20} />
-          </button>
+          <div className="relative">
+              <div className="flex items-center bg-stone-100 rounded p-0.5">
+                  <button
+                    onClick={generateTask}
+                    className="p-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors"
+                    title="Neue Aufgabe generieren"
+                  >
+                    <RefreshCw size={20} />
+                  </button>
+                  <button
+                    onClick={() => setShowTaskMenu(!showTaskMenu)}
+                    className="p-1.5 rounded hover:bg-white hover:shadow text-stone-600 transition-colors"
+                    title="Aufgaben-Einstellungen"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+              </div>
+
+              {showTaskMenu && (
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-stone-200 p-4 z-50">
+                      <h3 className="text-sm font-semibold text-stone-700 mb-3">Aufgaben-Typ</h3>
+                      
+                      <div className="grid grid-cols-3 gap-2 mb-4">
+                          <button 
+                              onClick={() => { setTaskType('mixed'); setShowTaskMenu(false); }}
+                              className={cn("px-2 py-1 text-sm rounded border", taskType === 'mixed' ? "bg-blue-50 border-blue-200 text-blue-700" : "border-stone-200 hover:bg-stone-50")}
+                          >
+                              Mix
+                          </button>
+                          <button 
+                              onClick={() => { setTaskType('+'); setShowTaskMenu(false); }}
+                              className={cn("px-2 py-1 text-sm rounded border", taskType === '+' ? "bg-blue-50 border-blue-200 text-blue-700" : "border-stone-200 hover:bg-stone-50")}
+                          >
+                              +
+                          </button>
+                          <button 
+                              onClick={() => { setTaskType('-'); setShowTaskMenu(false); }}
+                              className={cn("px-2 py-1 text-sm rounded border", taskType === '-' ? "bg-blue-50 border-blue-200 text-blue-700" : "border-stone-200 hover:bg-stone-50")}
+                          >
+                              -
+                          </button>
+                          <button 
+                              onClick={() => { setTaskType('*'); setShowTaskMenu(false); }}
+                              className={cn("px-2 py-1 text-sm rounded border", taskType === '*' ? "bg-blue-50 border-blue-200 text-blue-700" : "border-stone-200 hover:bg-stone-50")}
+                          >
+                              ·
+                          </button>
+                          <button 
+                              onClick={() => { setTaskType(':'); setShowTaskMenu(false); }}
+                              className={cn("px-2 py-1 text-sm rounded border", taskType === ':' ? "bg-blue-50 border-blue-200 text-blue-700" : "border-stone-200 hover:bg-stone-50")}
+                          >
+                              :
+                          </button>
+                      </div>
+
+                      <div className="border-t border-stone-100 pt-3">
+                          <h3 className="text-sm font-semibold text-stone-700 mb-2">Kleines 1x1</h3>
+                          <div className="grid grid-cols-5 gap-1">
+                              {Array.from({ length: 10 }).map((_, i) => {
+                                  const num = i + 1;
+                                  const isSelected = taskType === '1x1' && selectedTable === num;
+                                  return (
+                                      <button
+                                          key={num}
+                                          onClick={() => {
+                                              setTaskType('1x1');
+                                              setSelectedTable(num);
+                                              setShowTaskMenu(false);
+                                          }}
+                                          className={cn(
+                                              "h-8 text-xs rounded border flex items-center justify-center",
+                                              isSelected ? "bg-blue-50 border-blue-200 text-blue-700 font-medium" : "border-stone-200 hover:bg-stone-50"
+                                          )}
+                                      >
+                                          {num}
+                                      </button>
+                                  );
+                              })}
+                          </div>
+                      </div>
+                  </div>
+              )}
+          </div>
 
           <button
             onClick={() => setIsCarryMode(!isCarryMode)}
