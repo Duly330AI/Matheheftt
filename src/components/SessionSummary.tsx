@@ -1,19 +1,21 @@
 import React from 'react';
 import { SessionState, TaskType } from '../types';
-import { Trophy, RotateCcw, Menu } from 'lucide-react';
+import { Trophy, RotateCcw, Menu, Star } from 'lucide-react';
 
 interface SessionSummaryProps {
   sessionState: SessionState;
   taskType: TaskType;
   onRestart: () => void;
   onMenu: () => void;
+  isNewHighscore?: boolean;
 }
 
 export const SessionSummary: React.FC<SessionSummaryProps> = ({
   sessionState,
   taskType,
   onRestart,
-  onMenu
+  onMenu,
+  isNewHighscore
 }) => {
   const duration = Math.floor((Date.now() - sessionState.startTime) / 1000);
   const minutes = Math.floor(duration / 60);
@@ -27,7 +29,15 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
         </div>
         
         <h2 className="text-3xl font-bold text-stone-800 mb-2">Klasse gemacht!</h2>
-        <p className="text-stone-500 mb-8">Du hast die Session erfolgreich beendet.</p>
+        <p className="text-stone-500 mb-6">Du hast die Session erfolgreich beendet.</p>
+
+        {isNewHighscore && (
+          <div className="mb-6 p-4 bg-yellow-100 border-2 border-yellow-400 rounded-xl animate-bounce text-yellow-700 font-bold text-xl flex items-center justify-center gap-2 shadow-lg">
+            <Star className="fill-yellow-500 text-yellow-600" size={24} />
+            NEUER HIGHSCORE!
+            <Star className="fill-yellow-500 text-yellow-600" size={24} />
+          </div>
+        )}
         
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="bg-stone-50 p-4 rounded-lg border border-stone-200">

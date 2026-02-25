@@ -47,17 +47,21 @@ export function useProfiles() {
     }
   };
 
-  const updateScore = (points: number, category: string) => {
-    if (!activeProfileId) return;
+  const updateScore = (points: number, category: string): boolean => {
+    if (!activeProfileId) return false;
+
+    let isNewHighscore = false;
 
     const newProfiles = profiles.map(p => {
       if (p.id === activeProfileId) {
         const newHighscores = { ...p.highscores };
-        const currentHighscore = Math.max(...(newHighscores[category] || [0]));
-        const isNewHighscore = points > currentHighscore;
+        const currentHighscores = newHighscores[category] || [];
+        const currentBest = currentHighscores.length > 0 ? Math.max(...currentHighscores) : 0;
+        
+        isNewHighscore = points > currentBest;
         
         // Keep top 5 scores
-        const scores = [...(newHighscores[category] || []), points]
+        const scores = [...currentHighscores, points]
           .sort((a, b) => b - a)
           .slice(0, 5);
         newHighscores[category] = scores;
@@ -75,7 +79,7 @@ export function useProfiles() {
       return p;
     });
     saveProfiles(newProfiles);
-    return points > (profiles.find(p => p.id === activeProfileId)?.highscores[category]?.[0] || 0);
+    return isNewHighscore;
   };
 
   const deleteProfile = (id: string) => {

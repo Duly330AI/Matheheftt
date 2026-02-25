@@ -3,7 +3,7 @@ import { Toolbar } from './Toolbar';
 import { GridBoard } from './GridBoard';
 import { SessionSummary } from './SessionSummary';
 import { StartScreen } from './StartScreen';
-import { CellData, TaskType, SessionState, Profile } from '../types';
+import { CellData, TaskType, SessionState, Profile, Difficulty, GameMode } from '../types';
 import { generateMathTask } from '../utils/mathGenerators';
 
 const ROWS = 25;
@@ -12,11 +12,12 @@ const TASKS_PER_SESSION = 10;
 
 interface MathNotebookProps {
   activeProfile: Profile;
-  updateScore: (points: number, category: string) => void;
+  updateScore: (points: number, category: string) => boolean;
   onLogout: () => void;
+  onOpenLeaderboard: () => void;
 }
 
-export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNotebookProps) {
+export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeaderboard }: MathNotebookProps) {
   // Session State
   const [sessionState, setSessionState] = useState<SessionState>({
     isActive: false,
@@ -24,10 +25,13 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
     totalTasks: TASKS_PER_SESSION,
     score: 0,
     startTime: 0,
-    taskStartTime: 0
+    taskStartTime: 0,
+    gameMode: 'classic',
+    difficulty: 'medium'
   });
   const [showSummary, setShowSummary] = useState(false);
   const [isSessionStarted, setIsSessionStarted] = useState(false);
+  const [isNewHighscore, setIsNewHighscore] = useState(false);
 
   // Grid State
   const [grid, setGrid] = useState<Record<string, CellData>>({});
@@ -64,14 +68,42 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
     cellRefs.current[r][c] = el;
   }, []);
 
-  const handleStartSession = (type: TaskType, table: number | null) => {
+  const handleStartSession = (type: TaskType, table: number | null, difficulty: Difficulty, gameMode: GameMode, timeLimit?: number) => {
     setTaskType(type);
     setSelectedTable(table);
     setIsSessionStarted(true);
-    handleGenerateTask(false, type, table);
+    
+    // Initialize session with new params
+    setGrid({});
+    setSolutionMap({});
+    setCarryMap({});
+    setNextStartRow(2);
+    setGridRows(ROWS);
+    setShowSummary(false);
+    setIsNewHighscore(false);
+    
+    setSessionState({
+        isActive: true,
+        currentTaskIndex: 1,
+        totalTasks: gameMode === 'classic' ? TASKS_PER_SESSION : 0, // 0 means infinite/unknown
+        score: 0,
+        startTime: Date.now(),
+        taskStartTime: Date.now(),
+        gameMode,
+        difficulty,
+        timeLimit,
+        remainingTime: timeLimit
+    });
+
+    handleGenerateTask(false, type, table, difficulty);
   };
 
-  const handleGenerateTask = useCallback((append = false, type: TaskType = taskType, table: number | null = selectedTable) => {
+  const handleGenerateTask = useCallback((
+      append = false, 
+      type: TaskType = taskType, 
+      table: number | null = selectedTable,
+      difficulty: Difficulty = sessionState.difficulty
+  ) => {
     let startR = 2;
     
     if (append) {
@@ -82,23 +114,6 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
         currentTaskIndex: prev.currentTaskIndex + 1,
         taskStartTime: Date.now()
       }));
-    } else {
-      // New Session
-      setGrid({});
-      setSolutionMap({});
-      setCarryMap({});
-      setNextStartRow(2);
-      setGridRows(ROWS);
-      setShowSummary(false);
-      
-      setSessionState({
-        isActive: true,
-        currentTaskIndex: 1,
-        totalTasks: TASKS_PER_SESSION,
-        score: 0,
-        startTime: Date.now(),
-        taskStartTime: Date.now()
-      });
     }
 
     // Ensure grid has enough rows
@@ -106,7 +121,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
       setGridRows(prev => Math.max(prev, startR + 20));
     }
 
-    const taskResult = generateMathTask(type, startR, table);
+    const taskResult = generateMathTask(type, startR, table, difficulty);
 
     if (append) {
       setGrid(prev => ({ ...prev, ...taskResult.grid }));
@@ -134,7 +149,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
         setIsCarryMode(false);
       }
     }, 50);
-  }, [taskType, selectedTable, nextStartRow, gridRows]);
+  }, [taskType, selectedTable, nextStartRow, gridRows, sessionState.difficulty]);
 
   const isCarryCorrect = (input: string | undefined, expected: string | undefined) => {
     if (input === undefined || input === '' || expected === undefined) return false;
@@ -144,15 +159,40 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
   };
 
   const getCategoryKey = () => {
+    let base = taskType;
     if (taskType === '1x1' && selectedTable) {
-      return `1x1-${selectedTable}`;
+      base = `1x1-${selectedTable}`;
     }
-    return taskType;
+    return `${base}-${sessionState.difficulty}-${sessionState.gameMode}`;
   };
+
+  // Timer Logic for Time Attack
+  useEffect(() => {
+    if (sessionState.isActive && sessionState.gameMode === 'time_attack' && sessionState.remainingTime !== undefined) {
+      if (sessionState.remainingTime <= 0) {
+        // Time's up!
+        const category = getCategoryKey();
+        const isHigh = updateScore(sessionState.score, category);
+        setIsNewHighscore(isHigh);
+        setShowSummary(true);
+        setSessionState(prev => ({ ...prev, isActive: false }));
+        return;
+      }
+
+      const timer = setInterval(() => {
+        setSessionState(prev => ({
+          ...prev,
+          remainingTime: (prev.remainingTime || 0) - 1
+        }));
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [sessionState.isActive, sessionState.gameMode, sessionState.remainingTime, sessionState.score, taskType, selectedTable, sessionState.difficulty]);
 
   // Check completion
   useEffect(() => {
-    if (currentTaskSolutionKeys.length > 0) {
+    if (currentTaskSolutionKeys.length > 0 && sessionState.isActive) {
       const solutionCorrect = currentTaskSolutionKeys.every(key => {
         const cell = grid[key];
         const expected = solutionMap[key];
@@ -179,33 +219,38 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
         if (taskType === ':') multiplier = 2;
         if (taskType === 'mixed') multiplier = 1.5;
         
+        let difficultyMultiplier = 1;
+        if (sessionState.difficulty === 'medium') difficultyMultiplier = 2;
+        if (sessionState.difficulty === 'hard') difficultyMultiplier = 3;
+
         const basePoints = 100;
         const timeBonus = Math.max(0, Math.floor((60 - timeTaken) * 2));
-        const points = Math.floor((basePoints + timeBonus) * multiplier);
+        const points = Math.floor((basePoints + timeBonus) * multiplier * difficultyMultiplier);
         
         setSessionState(prev => ({
           ...prev,
           score: prev.score + points
         }));
 
-        // Check if session complete
-        if (sessionState.currentTaskIndex >= TASKS_PER_SESSION) {
+        // Check if session complete (Classic Mode)
+        if (sessionState.gameMode === 'classic' && sessionState.currentTaskIndex >= TASKS_PER_SESSION) {
           // Session Complete
           setTimeout(() => {
             const category = getCategoryKey();
-            updateScore(sessionState.score + points, category);
+            const isHigh = updateScore(sessionState.score + points, category);
+            setIsNewHighscore(isHigh);
             setShowSummary(true);
             setSessionState(prev => ({ ...prev, isActive: false }));
           }, 500);
         } else {
-          // Next Task
+          // Next Task (Classic or Time Attack)
           setTimeout(() => {
             handleGenerateTask(true);
           }, 500);
         }
       }
     }
-  }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, handleGenerateTask, taskType, updateScore, sessionState.currentTaskIndex, sessionState.taskStartTime, sessionState.score, selectedTable]);
+  }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, handleGenerateTask, taskType, updateScore, sessionState.currentTaskIndex, sessionState.taskStartTime, sessionState.score, selectedTable, sessionState.isActive, sessionState.gameMode, sessionState.difficulty]);
 
   const updateCell = useCallback((r: number, c: number, updates: Partial<CellData>) => {
     const key = getCellKey(r, c);
