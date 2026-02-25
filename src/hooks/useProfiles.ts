@@ -24,19 +24,14 @@ export function useProfiles() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newProfiles));
   };
 
-  const createProfile = (name: string) => {
+  const createProfile = (name: string, avatar: string = 'cat') => {
     const newProfile: Profile = {
       id: crypto.randomUUID(),
       name,
+      avatar,
       totalScore: 0,
-      highscores: {
-        'mixed': [],
-        '+': [],
-        '-': [],
-        '*': [],
-        ':': [],
-        '1x1': []
-      }
+      scores: {},
+      highscores: {}
     };
     const newProfiles = [...profiles, newProfile];
     saveProfiles(newProfiles);
@@ -52,23 +47,51 @@ export function useProfiles() {
     }
   };
 
-  const updateScore = (points: number, taskType: TaskType) => {
+  const updateScore = (points: number, category: string) => {
     if (!activeProfileId) return;
 
     const newProfiles = profiles.map(p => {
       if (p.id === activeProfileId) {
         const newHighscores = { ...p.highscores };
+        const currentHighscore = Math.max(...(newHighscores[category] || [0]));
+        const isNewHighscore = points > currentHighscore;
+        
         // Keep top 5 scores
-        const scores = [...(newHighscores[taskType] || []), points]
+        const scores = [...(newHighscores[category] || []), points]
           .sort((a, b) => b - a)
           .slice(0, 5);
-        newHighscores[taskType] = scores;
+        newHighscores[category] = scores;
+
+        const newScores = { ...p.scores };
+        newScores[category] = (newScores[category] || 0) + points;
 
         return {
           ...p,
           totalScore: p.totalScore + points,
+          scores: newScores,
           highscores: newHighscores
         };
+      }
+      return p;
+    });
+    saveProfiles(newProfiles);
+    return points > (profiles.find(p => p.id === activeProfileId)?.highscores[category]?.[0] || 0);
+  };
+
+  const deleteProfile = (id: string) => {
+    if (confirm('Möchtest du dieses Profil wirklich löschen? Alle Fortschritte gehen verloren.')) {
+      const newProfiles = profiles.filter(p => p.id !== id);
+      saveProfiles(newProfiles);
+      if (activeProfileId === id) {
+        selectProfile(null);
+      }
+    }
+  };
+
+  const updateProfile = (id: string, name: string, avatar: string) => {
+    const newProfiles = profiles.map(p => {
+      if (p.id === id) {
+        return { ...p, name, avatar };
       }
       return p;
     });
@@ -82,6 +105,8 @@ export function useProfiles() {
     activeProfile,
     createProfile,
     selectProfile,
-    updateScore
+    updateScore,
+    deleteProfile,
+    updateProfile
   };
 }

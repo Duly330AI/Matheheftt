@@ -8,14 +8,24 @@ import { ProfileSelector } from '@/components/ProfileSelector';
 import { useProfiles } from '@/hooks/useProfiles';
 
 export default function App() {
-  const { profiles, activeProfile, createProfile, selectProfile, updateScore } = useProfiles();
+  const { 
+    profiles, 
+    activeProfile, 
+    createProfile, 
+    selectProfile, 
+    updateScore,
+    deleteProfile,
+    updateProfile
+  } = useProfiles();
 
   if (!activeProfile) {
     return (
       <ProfileSelector 
         profiles={profiles} 
         createProfile={createProfile} 
-        selectProfile={selectProfile} 
+        selectProfile={selectProfile}
+        deleteProfile={deleteProfile}
+        updateProfile={updateProfile}
       />
     );
   }

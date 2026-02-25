@@ -11,8 +11,10 @@ export type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1';
 export interface Profile {
   id: string;
   name: string;
+  avatar?: string; // e.g., 'cat', 'dog', 'girl', 'boy'
   totalScore: number;
-  highscores: Record<TaskType, number[]>;
+  scores: Record<string, number>; // Detailed scores per category (e.g., 'mixed', '+', '1x1-7')
+  highscores: Record<string, number[]>; // Highscores per category
 }
 
 export interface TaskResult {

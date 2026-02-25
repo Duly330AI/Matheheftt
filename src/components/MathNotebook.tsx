@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Toolbar } from './Toolbar';
 import { GridBoard } from './GridBoard';
 import { SessionSummary } from './SessionSummary';
+import { StartScreen } from './StartScreen';
 import { CellData, TaskType, SessionState, Profile } from '../types';
 import { generateMathTask } from '../utils/mathGenerators';
 
@@ -11,7 +12,7 @@ const TASKS_PER_SESSION = 10;
 
 interface MathNotebookProps {
   activeProfile: Profile;
-  updateScore: (points: number, taskType: TaskType) => void;
+  updateScore: (points: number, category: string) => void;
   onLogout: () => void;
 }
 
@@ -26,6 +27,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
     taskStartTime: 0
   });
   const [showSummary, setShowSummary] = useState(false);
+  const [isSessionStarted, setIsSessionStarted] = useState(false);
 
   // Grid State
   const [grid, setGrid] = useState<Record<string, CellData>>({});
@@ -62,7 +64,14 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
     cellRefs.current[r][c] = el;
   }, []);
 
-  const handleGenerateTask = useCallback((append = false) => {
+  const handleStartSession = (type: TaskType, table: number | null) => {
+    setTaskType(type);
+    setSelectedTable(table);
+    setIsSessionStarted(true);
+    handleGenerateTask(false, type, table);
+  };
+
+  const handleGenerateTask = useCallback((append = false, type: TaskType = taskType, table: number | null = selectedTable) => {
     let startR = 2;
     
     if (append) {
@@ -97,7 +106,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
       setGridRows(prev => Math.max(prev, startR + 20));
     }
 
-    const taskResult = generateMathTask(taskType, startR, selectedTable);
+    const taskResult = generateMathTask(type, startR, table);
 
     if (append) {
       setGrid(prev => ({ ...prev, ...taskResult.grid }));
@@ -127,18 +136,18 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
     }, 50);
   }, [taskType, selectedTable, nextStartRow, gridRows]);
 
-  // Initial Task
-  useEffect(() => {
-    if (!sessionState.isActive && !showSummary) {
-      handleGenerateTask(false);
-    }
-  }, []); // Run once on mount
-
   const isCarryCorrect = (input: string | undefined, expected: string | undefined) => {
     if (input === undefined || input === '' || expected === undefined) return false;
     if (input === expected) return true;
     if (input.replace('+', '') === expected.replace('+', '')) return true;
     return false;
+  };
+
+  const getCategoryKey = () => {
+    if (taskType === '1x1' && selectedTable) {
+      return `1x1-${selectedTable}`;
+    }
+    return taskType;
   };
 
   // Check completion
@@ -183,7 +192,8 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
         if (sessionState.currentTaskIndex >= TASKS_PER_SESSION) {
           // Session Complete
           setTimeout(() => {
-            updateScore(sessionState.score + points, taskType);
+            const category = getCategoryKey();
+            updateScore(sessionState.score + points, category);
             setShowSummary(true);
             setSessionState(prev => ({ ...prev, isActive: false }));
           }, 500);
@@ -195,7 +205,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
         }
       }
     }
-  }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, handleGenerateTask, taskType, updateScore, sessionState.currentTaskIndex, sessionState.taskStartTime, sessionState.score]);
+  }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, handleGenerateTask, taskType, updateScore, sessionState.currentTaskIndex, sessionState.taskStartTime, sessionState.score, selectedTable]);
 
   const updateCell = useCallback((r: number, c: number, updates: Partial<CellData>) => {
     const key = getCellKey(r, c);
@@ -409,6 +419,10 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
     }
   }, [focusedCell, updateCell]);
 
+  if (!isSessionStarted) {
+    return <StartScreen onStart={handleStartSession} onBack={onLogout} />;
+  }
+
   return (
     <div className="flex flex-col h-screen bg-stone-100 font-sans text-stone-900">
       <Toolbar
@@ -449,7 +463,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout }: MathNoteb
           sessionState={sessionState}
           taskType={taskType}
           onRestart={() => handleGenerateTask(false)}
-          onMenu={onLogout}
+          onMenu={() => setIsSessionStarted(false)}
         />
       )}
     </div>
