@@ -41,8 +41,10 @@ export function MathGrid() {
   const cellRefs = useRef<(HTMLInputElement | null)[][]>([]);
 
   // Initialize refs array synchronously to ensure they exist during render
-  if (cellRefs.current.length !== ROWS) {
-    cellRefs.current = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+  if (cellRefs.current.length < gridRows) {
+    while (cellRefs.current.length < gridRows) {
+      cellRefs.current.push(Array(COLS).fill(null));
+    }
   }
 
   const getCellKey = (r: number, c: number) => `${r},${c}`;
@@ -67,6 +69,8 @@ export function MathGrid() {
     }
 
     let op = '';
+    let focusR = 0;
+    let focusC = 0;
     
     if (taskType === 'mixed') {
         const operations = ['+', '-', '*', ':'];
@@ -99,6 +103,8 @@ export function MathGrid() {
       const strRes = result.toString();
       
       const alignCol = startC + 4;
+      focusR = startR + 2;
+      focusC = alignCol;
       
       // Place num1
       for (let i = 0; i < str1.length; i++) {
@@ -196,6 +202,8 @@ export function MathGrid() {
         
         const resStr = result.toString();
         const resStartC = startC + taskStr.length;
+        focusR = startR;
+        focusC = resStartC;
         
         for (let i = 0; i < resStr.length; i++) {
           newSolution[getCellKey(startR, resStartC + i)] = resStr[i];
@@ -215,6 +223,8 @@ export function MathGrid() {
         newGrid[getCellKey(startR, currentC++)] = { value: ':', underlined: false };
         for(let i=0; i<divisorStr.length; i++) newGrid[getCellKey(startR, currentC++)] = { value: divisorStr[i], underlined: false };
         newGrid[getCellKey(startR, currentC++)] = { value: '=', underlined: false };
+        focusR = startR;
+        focusC = currentC;
         
         for(let i=0; i<quotientStr.length; i++) newSolution[getCellKey(startR, currentC + i)] = quotientStr[i];
 
@@ -279,6 +289,17 @@ export function MathGrid() {
     
     // Track keys for the NEW task only
     setCurrentTaskSolutionKeys(Object.keys(newSolution));
+    
+    // Auto-focus the first input cell
+    setTimeout(() => {
+        if (cellRefs.current[focusR] && cellRefs.current[focusR][focusC]) {
+            cellRefs.current[focusR][focusC]?.focus();
+            setFocusedCell({ r: focusR, c: focusC });
+            setSelectionStart({ r: focusR, c: focusC });
+            setSelectionEnd({ r: focusR, c: focusC });
+            setIsCarryMode(false);
+        }
+    }, 50);
   };
 
   // Check for task completion
