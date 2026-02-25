@@ -175,18 +175,9 @@ export function MathGrid() {
              newSolution[getCellKey(row, col)] = colRes.toString();
              
              if (nextCarry > 0) {
-                 if (op === '+') {
-                     // For addition, carry goes to the next column (left)
-                     // But we don't mark the carry if it's the final overflow that creates a new digit
-                     if (i < maxLen - 1) {
-                         const carryKey = getCellKey(row, col - 1);
-                         newCarry[carryKey] = nextCarry.toString();
-                     }
-                 } else {
-                     // For subtraction, carry stays in the current column (generating column)
-                     const carryVal = `-${nextCarry}`;
-                     newCarry[getCellKey(row, col)] = carryVal;
-                 }
+                 // Carry is always marked in the generating column (current column)
+                 const carryVal = op === '-' ? `-${nextCarry}` : nextCarry.toString();
+                 newCarry[getCellKey(row, col)] = carryVal;
              }
           }
           
