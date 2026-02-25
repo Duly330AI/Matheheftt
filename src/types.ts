@@ -7,6 +7,8 @@ export interface CellData {
 }
 
 export type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1';
+export type Difficulty = 'easy' | 'medium' | 'hard';
+export type GameMode = 'classic' | 'time_attack';
 
 export interface Profile {
   id: string;
@@ -34,4 +36,8 @@ export interface SessionState {
   score: number;
   startTime: number;
   taskStartTime: number;
+  gameMode: GameMode;
+  difficulty: Difficulty;
+  timeLimit?: number;
+  remainingTime?: number;
 }

@@ -385,10 +385,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
       }
     } else if (e.key === 'Backspace') {
       // Handle backspace (bulk delete if selection)
-      // For simplicity, just handle single cell or selection here
-      // Logic from original MathGrid...
-      // Simplified for now:
-      if (selectionStart && selectionEnd) {
+      if (selectionStart && selectionEnd && (selectionStart.r !== selectionEnd.r || selectionStart.c !== selectionEnd.c)) {
          const minR = Math.min(selectionStart.r, selectionEnd.r);
          const maxR = Math.max(selectionStart.r, selectionEnd.r);
          const minC = Math.min(selectionStart.c, selectionEnd.c);
@@ -416,6 +413,26 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
              }
              return next;
          });
+      } else {
+        // Single cell backspace
+        const key = getCellKey(r, c);
+        const current = grid[key];
+        
+        // If cell has content, clear it. If already empty, move focus back.
+        const hasContent = isCarryMode ? !!current?.carry : !!current?.value;
+        
+        if (hasContent) {
+            updateCell(r, c, isCarryMode ? { carry: undefined } : { value: '' });
+        } else {
+            // Move focus back
+            if (autoMoveDir === 'right' && c > 0) {
+                cellRefs.current[r][c - 1]?.focus();
+            } else if (autoMoveDir === 'left' && c < COLS - 1) {
+                cellRefs.current[r][c + 1]?.focus();
+            } else if (autoMoveDir === 'down' && r > 0) {
+                cellRefs.current[r - 1][c]?.focus();
+            }
+        }
       }
     } else if (isCarryMode && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();

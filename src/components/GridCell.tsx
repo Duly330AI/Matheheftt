@@ -63,6 +63,7 @@ const GridCellComponent = ({
           setRef(el);
         }}
         type="text"
+        aria-label={`Zeile ${r + 1}, Spalte ${c + 1}`}
         className={cn(
           "w-full h-full text-center outline-none transition-colors font-mono text-lg leading-none bg-transparent p-0 m-0 cursor-default select-none",
           cellData.isValid === false && "text-red-500",
