@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@google/genai": "^1.29.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@tailwindcss/vite": "^4.1.14",
@@ -20,6 +21,11 @@
     "diff": "^8.0.3",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+=======
+    "@tailwindcss/vite": "^4.1.14",
+    "@vitejs/plugin-react": "^5.0.4",
+    "clsx": "^2.1.1",
+>>>>>>> 728bc0b346d52019981077c507318cf2983d7895
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.0",
@@ -29,9 +35,13 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "@types/express": "^4.17.21",
     "@types/node": "^22.19.12",
     "@types/react-dom": "^19.2.3",
+=======
+    "@types/node": "^22.14.0",
+>>>>>>> 728bc0b346d52019981077c507318cf2983d7895
     "autoprefixer": "^10.4.21",
     "clsx": "^2.1.1",
     "tailwindcss": "^4.1.14",

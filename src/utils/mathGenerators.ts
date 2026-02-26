@@ -315,34 +315,27 @@ export const generateMathTask = (
                 newSolution[getCellKey(currentRow, col)] = prodStr[k];
                 // Underline the product
                 const key = getCellKey(currentRow, col);
-                if (!newGrid[key]) newGrid[key] = { value: '', underlined: true }; // We can't pre-fill grid, but we can set underlined if we knew... 
-                // Actually, for solution cells, we can't set grid properties easily unless we pre-fill empty cells.
-                // Let's just assume the user draws the line or we pre-fill empty underlined cells.
-                // We'll pre-fill empty underlined cells where the solution is expected.
                 newGrid[key] = { value: '', underlined: true };
             }
             currentRow++;
             
-            // 2. Write Remainder (result of subtraction)
-            // The remainder is written in the next row
-            // It aligns with the current dividend digit
-            const remStr = newRemainder.toString();
-            
-            // If this is not the last step, the next digit will be brought down next to this remainder.
-            // But visually, we first write the remainder.
-            // Exception: if remainder is 0 and it's not the end, we might not write it explicitly if we bring down next digit immediately?
-            // Standard German: write remainder.
-            
-            // Optimization: If remainder is 0 and we are not at the end, usually we just bring down the next digit.
-            // But let's be explicit for clarity.
-            
-            // Actually, let's just calculate height.
-            // Each step adds 2 rows (Product + Remainder/Next Dividend).
-            // But the "Remainder" of step N is the "Dividend" of step N+1 (combined with next digit).
-            // So we add 1 row for Product. The Remainder is on the next row.
-            
-            // Let's just increment row for Product.
-            // The subtraction result (remainder) is effectively the start of the next step.
+            // 2. Write Remainder + Brought Down Digit (if not last step)
+            if (i < str1.length - 1) {
+                const nextDigit = str1[i + 1];
+                const remStr = newRemainder.toString();
+                
+                // Write remainder
+                for (let k = 0; k < remStr.length; k++) {
+                    const col = startC + i - (remStr.length - 1) + k;
+                    newSolution[getCellKey(currentRow, col)] = remStr[k];
+                }
+                
+                // Write brought down digit
+                const nextCol = startC + i + 1;
+                newSolution[getCellKey(currentRow, nextCol)] = nextDigit;
+                
+                currentRow++;
+            }
             
             remainderVal = newRemainder;
         }

@@ -8,7 +8,7 @@ export interface CellData {
 
 export type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1';
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type GameMode = 'classic' | 'time_attack';
+export type GameMode = 'classic' | 'time_attack' | 'exam';
 
 export interface Profile {
   id: string;
