@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Toolbar } from './Toolbar';
 import { GridBoard } from './GridBoard';
 import { SessionSummary } from './SessionSummary';
 import { StartScreen } from './StartScreen';
 import { CellData, TaskType, SessionState, Profile, Difficulty, GameMode } from '../types';
 import { generateMathTask } from '../utils/mathGenerators';
+import { useGridState } from '../hooks/useGridState';
 
 const ROWS = 25;
 const COLS = 30;
@@ -33,18 +34,9 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
   const [isSessionStarted, setIsSessionStarted] = useState(false);
   const [isNewHighscore, setIsNewHighscore] = useState(false);
 
-  // Grid State
-  const [grid, setGrid] = useState<Record<string, CellData>>({});
-  const [gridRows, setGridRows] = useState(ROWS);
-  const [focusedCell, setFocusedCell] = useState<{ r: number; c: number } | null>(null);
-  const [selectionStart, setSelectionStart] = useState<{ r: number; c: number } | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<{ r: number; c: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  
   // Math Logic State
   const [solutionMap, setSolutionMap] = useState<Record<string, string>>({});
   const [carryMap, setCarryMap] = useState<Record<string, string>>({});
-  const [isCarryMode, setIsCarryMode] = useState(false);
   const [autoMoveDir, setAutoMoveDir] = useState<'left' | 'right' | 'down' | 'none'>('right');
   
   // Task Config
@@ -56,19 +48,35 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
   const [currentTaskSolutionKeys, setCurrentTaskSolutionKeys] = useState<string[]>([]);
   const [currentTaskCarryKeys, setCurrentTaskCarryKeys] = useState<string[]>([]);
 
-  // Refs
-  const cellRefs = useRef<(HTMLInputElement | null)[][]>([]);
+  const isExamMode = sessionState.gameMode === 'exam' && !sessionState.examReviewMode;
+
+  // Grid State Hook
+  const {
+    grid,
+    setGrid,
+    gridRows,
+    setGridRows,
+    focusedCell,
+    setFocusedCell,
+    selectionStart,
+    setSelectionStart,
+    selectionEnd,
+    setSelectionEnd,
+    isCarryMode,
+    setIsCarryMode,
+    setIsDragging,
+    cellRefs,
+    registerCellRef,
+    updateCell,
+    handleCellChange,
+    handleCellKeyDown,
+    handleCellMouseDown,
+    handleCellMouseEnter,
+    toggleUnderline,
+    isCarryCorrect
+  } = useGridState(ROWS, COLS, solutionMap, carryMap, isExamMode, autoMoveDir);
 
   const getCellKey = (r: number, c: number) => `${r},${c}`;
-
-  const registerCellRef = useCallback((r: number, c: number, el: HTMLInputElement | null) => {
-    if (!cellRefs.current[r]) {
-      cellRefs.current[r] = [];
-    }
-    cellRefs.current[r][c] = el;
-  }, []);
-
-  const isExamMode = sessionState.gameMode === 'exam' && !sessionState.examReviewMode;
 
   const handleStartSession = (type: TaskType, table: number | null, difficulty: Difficulty, gameMode: GameMode, timeLimit?: number) => {
     setTaskType(type);
@@ -154,17 +162,8 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
     }, 50);
   }, [taskType, selectedTable, nextStartRow, gridRows, sessionState.difficulty]);
 
-  const isCarryCorrect = (input: string | undefined, expected: string | undefined) => {
-    if (input === undefined || input === '' || expected === undefined) return false;
-    if (input === expected) return true;
-    // Allow loose match (ignore + and -) to handle "1", "+1", "-1" equally
-    const cleanInput = input.replace(/[+-]/g, '');
-    const cleanExpected = expected.replace(/[+-]/g, '');
-    return cleanInput === cleanExpected;
-  };
-
   const getCategoryKey = () => {
-    let base = taskType;
+    let base: string = taskType;
     if (taskType === '1x1' && selectedTable) {
       base = `1x1-${selectedTable}`;
     }
@@ -275,227 +274,11 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
     }
   }, [grid, currentTaskSolutionKeys, currentTaskCarryKeys, solutionMap, carryMap, handleGenerateTask, taskType, updateScore, sessionState.currentTaskIndex, sessionState.taskStartTime, sessionState.score, selectedTable, sessionState.isActive, sessionState.gameMode, sessionState.difficulty, isExamMode]);
 
-  const updateCell = useCallback((r: number, c: number, updates: Partial<CellData>) => {
-    const key = getCellKey(r, c);
-    
-    setGrid(prev => {
-      const current = prev[key] || { value: '', underlined: false };
-      
-      if (isCarryMode && updates.value !== undefined) {
-          return prev;
-      }
-      
-      const newValue = updates.value !== undefined ? updates.value : current.value;
-      const newCarry = updates.carry !== undefined ? updates.carry : current.carry;
-      
-      let isValid = current.isValid;
-      if (solutionMap[key] !== undefined && updates.value !== undefined) {
-          isValid = isExamMode ? null : newValue === solutionMap[key];
-      } else if (solutionMap[key] === undefined && updates.value !== undefined) {
-          isValid = null;
-      }
-      
-      let isCarryValid = current.isCarryValid;
-      if (updates.carry !== undefined) {
-          if (carryMap[key] !== undefined) {
-              isCarryValid = isExamMode ? null : isCarryCorrect(newCarry, carryMap[key]);
-          } else if (newCarry) {
-              isCarryValid = isExamMode ? null : false;
-          } else {
-              isCarryValid = null;
-          }
-      }
-      
-      return {
-        ...prev,
-        [key]: { ...current, ...updates, isValid, isCarryValid }
-      };
-    });
-  }, [isCarryMode, solutionMap, carryMap]);
-
-  const handleCellChange = useCallback((r: number, c: number, value: string) => {
-    if (!isCarryMode) {
-      updateCell(r, c, { value });
-      
-      // Smart Carry Logic
-      const key = getCellKey(r, c);
-      const expectedCarry = carryMap[key];
-      const currentCarry = grid[key]?.carry;
-      
-      if (expectedCarry && !currentCarry) {
-          setIsCarryMode(true);
-      } else {
-          // Auto-move
-          if (value.length === 1) {
-              if (autoMoveDir === 'right' && c < COLS - 1) {
-                  cellRefs.current[r][c + 1]?.focus();
-              } else if (autoMoveDir === 'left' && c > 0) {
-                  cellRefs.current[r][c - 1]?.focus();
-              } else if (autoMoveDir === 'down' && r < ROWS - 1) {
-                  cellRefs.current[r + 1][c]?.focus();
-              }
-          }
-      }
-    }
-  }, [isCarryMode, updateCell, carryMap, grid, autoMoveDir]);
-
-  const handleCellKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, r: number, c: number) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      setIsCarryMode(prev => !prev);
-      return;
-    }
-
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (r > 0) {
-        const nextR = r - 1;
-        cellRefs.current[nextR][c]?.focus();
-        setSelectionStart({ r: nextR, c });
-        setSelectionEnd({ r: nextR, c });
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (r < gridRows - 1) {
-        const nextR = r + 1;
-        cellRefs.current[nextR][c]?.focus();
-        setSelectionStart({ r: nextR, c });
-        setSelectionEnd({ r: nextR, c });
-      }
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      if (c > 0) {
-        const nextC = c - 1;
-        cellRefs.current[r][nextC]?.focus();
-        setSelectionStart({ r, c: nextC });
-        setSelectionEnd({ r, c: nextC });
-      }
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (c < COLS - 1) {
-        const nextC = c + 1;
-        cellRefs.current[r][nextC]?.focus();
-        setSelectionStart({ r, c: nextC });
-        setSelectionEnd({ r, c: nextC });
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (r < gridRows - 1) {
-        const nextR = r + 1;
-        cellRefs.current[nextR][c]?.focus();
-        setSelectionStart({ r: nextR, c });
-        setSelectionEnd({ r: nextR, c });
-      }
-    } else if (e.key === 'Backspace') {
-      // Handle backspace (bulk delete if selection)
-      if (selectionStart && selectionEnd && (selectionStart.r !== selectionEnd.r || selectionStart.c !== selectionEnd.c)) {
-         const minR = Math.min(selectionStart.r, selectionEnd.r);
-         const maxR = Math.max(selectionStart.r, selectionEnd.r);
-         const minC = Math.min(selectionStart.c, selectionEnd.c);
-         const maxC = Math.max(selectionStart.c, selectionEnd.c);
-         
-         setGrid(prev => {
-             const next = { ...prev };
-             for (let row = minR; row <= maxR; row++) {
-                 for (let col = minC; col <= maxC; col++) {
-                     const key = getCellKey(row, col);
-                     if (next[key]) {
-                         if (isCarryMode) {
-                             const expectedCarry = carryMap[key];
-                             let isCarryValid = null;
-                             if (expectedCarry !== undefined) isCarryValid = false;
-                             next[key] = { ...next[key], carry: undefined, isCarryValid };
-                         } else {
-                             const expectedVal = solutionMap[key];
-                             let isValid = null;
-                             if (expectedVal !== undefined) isValid = false;
-                             next[key] = { ...next[key], value: '', isValid };
-                         }
-                     }
-                 }
-             }
-             return next;
-         });
-      } else {
-        // Single cell backspace
-        const key = getCellKey(r, c);
-        const current = grid[key];
-        
-        // If cell has content, clear it. If already empty, move focus back.
-        const hasContent = isCarryMode ? !!current?.carry : !!current?.value;
-        
-        if (hasContent) {
-            updateCell(r, c, isCarryMode ? { carry: undefined } : { value: '' });
-        } else {
-            // Move focus back
-            if (autoMoveDir === 'right' && c > 0) {
-                cellRefs.current[r][c - 1]?.focus();
-            } else if (autoMoveDir === 'left' && c < COLS - 1) {
-                cellRefs.current[r][c + 1]?.focus();
-            } else if (autoMoveDir === 'down' && r > 0) {
-                cellRefs.current[r - 1][c]?.focus();
-            }
-        }
-      }
-    } else if (isCarryMode && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault();
-      const key = getCellKey(r, c);
-      const current = grid[key] || { value: '', underlined: false };
-      const currentCarry = current.carry || '';
-      updateCell(r, c, { carry: currentCarry + e.key });
-    }
-  }, [gridRows, isCarryMode, selectionStart, selectionEnd, carryMap, solutionMap, updateCell, grid]);
-
-  const handleCellMouseDown = useCallback((r: number, c: number) => {
-    setIsDragging(true);
-    setSelectionStart({ r, c });
-    setSelectionEnd({ r, c });
-    setFocusedCell({ r, c });
-  }, []);
-
-  const handleCellMouseEnter = useCallback((r: number, c: number) => {
-    if (isDragging) {
-      setSelectionEnd({ r, c });
-    }
-  }, [isDragging]);
-
   useEffect(() => {
     const handleGlobalMouseUp = () => setIsDragging(false);
     window.addEventListener('mouseup', handleGlobalMouseUp);
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
-
-  const toggleUnderline = useCallback(() => {
-    if (selectionStart && selectionEnd) {
-      const minR = Math.min(selectionStart.r, selectionEnd.r);
-      const maxR = Math.max(selectionStart.r, selectionEnd.r);
-      const minC = Math.min(selectionStart.c, selectionEnd.c);
-      const maxC = Math.max(selectionStart.c, selectionEnd.c);
-
-      let anyNotUnderlined = false;
-      for (let r = minR; r <= maxR; r++) {
-        for (let c = minC; c <= maxC; c++) {
-          const key = getCellKey(r, c);
-          if (!grid[key]?.underlined) {
-            anyNotUnderlined = true;
-            break;
-          }
-        }
-        if (anyNotUnderlined) break;
-      }
-
-      setGrid(prev => {
-        const next = { ...prev };
-        for (let r = minR; r <= maxR; r++) {
-          for (let c = minC; c <= maxC; c++) {
-            const key = getCellKey(r, c);
-            next[key] = { ...(next[key] || { value: '', underlined: false }), underlined: anyNotUnderlined };
-          }
-        }
-        return next;
-      });
-    }
-  }, [selectionStart, selectionEnd, grid]);
+  }, [setIsDragging]);
 
   const handleExamSubmit = useCallback(() => {
     // Calculate score based on all tasks
@@ -558,7 +341,7 @@ export function MathNotebook({ activeProfile, updateScore, onLogout, onOpenLeade
   }, [focusedCell, updateCell]);
 
   if (!isSessionStarted) {
-    return <StartScreen onStart={handleStartSession} onBack={onLogout} />;
+    return <StartScreen onStart={handleStartSession} onBack={onLogout} onOpenLeaderboard={onOpenLeaderboard} />;
   }
 
   return (
