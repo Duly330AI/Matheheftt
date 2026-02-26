@@ -1,5 +1,5 @@
 import React, { memo, useRef, useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '../lib/utils';
 import { CellData } from '../types';
 
 interface GridCellProps {

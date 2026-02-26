@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { TaskType, Difficulty, GameMode } from '../types';
+import { TaskType, Difficulty, GameMode, Profile } from '../types';
 import { useProfiles } from '../hooks/useProfiles';
 import { Trophy, X, Filter, List, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '../lib/utils';
 
 interface LeaderboardProps {
   onClose: () => void;
@@ -25,7 +25,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
 
   const leaderboardData = useMemo(() => {
     return profiles
-      .map(p => {
+      .map((p: Profile) => {
         const scores = p.highscores[categoryKey] || [];
         const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
         return {
@@ -33,8 +33,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
           bestScore
         };
       })
-      .filter(p => p.bestScore > 0)
-      .sort((a, b) => b.bestScore - a.bestScore);
+      .filter((p: Profile & { bestScore: number }) => p.bestScore > 0)
+      .sort((a: Profile & { bestScore: number }, b: Profile & { bestScore: number }) => b.bestScore - a.bestScore);
   }, [profiles, categoryKey]);
 
   return (

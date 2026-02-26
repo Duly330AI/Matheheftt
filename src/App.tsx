@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
-import { MathNotebook } from '@/components/MathNotebook';
-import { ProfileSelector } from '@/components/ProfileSelector';
-import { useProfiles } from '@/hooks/useProfiles';
-import { Leaderboard } from '@/components/Leaderboard';
+import React, { useState } from 'react';
+import { MathNotebook } from './components/MathNotebook';
+import { ProfileSelector } from './components/ProfileSelector';
+import { useProfiles } from './hooks/useProfiles';
+import { Leaderboard } from './components/Leaderboard';
 
 export default function App() {
   const { 
