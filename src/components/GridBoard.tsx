@@ -87,7 +87,7 @@ export const GridBoard: React.FC<GridBoardProps> = ({
                 onMouseEnter={onCellMouseEnter}
                 onChange={onCellChange}
                 onKeyDown={onCellKeyDown}
-                setRef={(el) => registerCellRef(r, c, el)}
+                setRef={(el: HTMLInputElement | null) => registerCellRef(r, c, el)}
               />
             );
           })

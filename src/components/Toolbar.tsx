@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '../lib/utils';
 import { Eraser, Underline, Trash2, Download, RefreshCw, CheckCircle, Superscript, ArrowLeft, ArrowRight, ArrowDown, Ban, Settings, ChevronDown } from 'lucide-react';
 import { TaskType, Profile, SessionState } from '../types';
 import { Timer } from './Timer';

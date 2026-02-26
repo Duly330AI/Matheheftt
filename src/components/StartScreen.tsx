@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TaskType, Difficulty, GameMode } from '../types';
 import { Play, Settings, ChevronDown, ArrowLeft, Clock, List, Zap, Trophy } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '../lib/utils';
 
 interface StartScreenProps {
   onStart: (taskType: TaskType, selectedTable: number | null, difficulty: Difficulty, gameMode: GameMode, timeLimit?: number) => void;
