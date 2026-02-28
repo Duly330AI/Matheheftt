@@ -129,6 +129,7 @@ export class StudentModel {
     if (op === 'mul' || op === 'multiplication') return 'multiplication_basic';
     if (op === 'div' || op === 'division') return 'division_process';
     if (op === 'algebra') return 'algebra_expand_brackets';
+    if (op === 'simplify_terms') return 'algebra_simplify_terms';
     
     return null;
   }

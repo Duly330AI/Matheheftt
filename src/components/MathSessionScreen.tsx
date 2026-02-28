@@ -96,6 +96,16 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
   const [plannerDecisions, setPlannerDecisions] = useState<any[]>([]);
   const allSessionEventsRef = React.useRef<any[]>([]);
   const lastErrorEventKeyRef = React.useRef<string | null>(null);
+  const cognitiveTimelineRef = React.useRef(cognitiveTimeline);
+  const plannerDecisionsRef = React.useRef(plannerDecisions);
+
+  useEffect(() => {
+    cognitiveTimelineRef.current = cognitiveTimeline;
+  }, [cognitiveTimeline]);
+
+  useEffect(() => {
+    plannerDecisionsRef.current = plannerDecisions;
+  }, [plannerDecisions]);
 
   // Planner State
   const planner = useMemo(() => new LearningPathPlanner(Date.now()), []);
@@ -138,8 +148,8 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
             gameMode,
             currentTaskIndex: tasksCompleted,
             telemetryEvents: allSessionEventsRef.current,
-            cognitiveTimeline,
-            plannerDecisions
+            cognitiveTimeline: cognitiveTimelineRef.current,
+            plannerDecisions: plannerDecisionsRef.current
           });
         }
       }, 1000);

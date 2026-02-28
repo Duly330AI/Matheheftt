@@ -47,6 +47,11 @@ Das System wurde nach strikten Software-Engineering-Prinzipien (Separation of Co
    npm run test
    ```
 
+   Optional (Watch Mode):
+   ```bash
+   npm run test:watch
+   ```
+
 4. Anwendung starten:
    ```bash
    npm run dev

@@ -87,6 +87,19 @@ describe('StudentModel', () => {
     expect(model.getSkillScore('algebra_expand_brackets')).toBeGreaterThan(0.5);
   });
 
+  it('should track simplify_terms skill progression', () => {
+    const model = new StudentModel();
+
+    const events: TelemetryEvent[] = [
+      { id: '1', timestamp: 1000, type: 'session_start', payload: { operation: 'simplify_terms' } },
+      { id: '2', timestamp: 2000, type: 'step_transition', payload: { durationSinceLastEvent: 1000 } },
+    ];
+
+    model.updateFromTelemetry(events);
+
+    expect(model.getSkillScore('algebra_simplify_terms')).toBeGreaterThan(0.5);
+  });
+
   it('should serialize and deserialize correctly', () => {
     const model = new StudentModel();
     

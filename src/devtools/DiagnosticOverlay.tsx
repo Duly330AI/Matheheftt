@@ -86,15 +86,13 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ state, see
           </div>
         )}
 
-        {state.stepResult && (
+        {(state.hintMessageKey || state.hintMessage || state.hintSkillTag || state.hintSeverity) && (
           <div className="bg-gray-800 p-2 rounded">
-            <div className="text-gray-400 mb-1">Last Validation:</div>
-            <div><span className="text-gray-500">Correct:</span> {state.stepResult.correct ? 'Yes' : 'No'}</div>
-            {state.stepResult.errors.length > 0 && (
-              <div className="text-red-400 mt-1">
-                Errors: {JSON.stringify(state.stepResult.errors)}
-              </div>
-            )}
+            <div className="text-gray-400 mb-1">Hint Context:</div>
+            {state.hintMessageKey && <div><span className="text-gray-500">Key:</span> {state.hintMessageKey}</div>}
+            {state.hintMessage && <div><span className="text-gray-500">Message:</span> {state.hintMessage}</div>}
+            {state.hintSeverity && <div><span className="text-gray-500">Severity:</span> {state.hintSeverity}</div>}
+            {state.hintSkillTag && <div><span className="text-gray-500">Skill:</span> {state.hintSkillTag}</div>}
           </div>
         )}
       </div>

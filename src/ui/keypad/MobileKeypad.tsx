@@ -4,7 +4,7 @@ import { Delete, Check } from 'lucide-react';
 
 export type KeypadKey = 
   | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-  | '+' | '-' | '*' | '/' | '(' | ')' | 'x' | 'y' | 'a' | 'b'
+  | '+' | '-' | '*' | '/' | '(' | ')' | 'x' | 'y' | 'a' | 'b' | 'n'
   | 'Backspace' | 'Enter';
 
 export interface MobileKeypadProps {
@@ -49,7 +49,7 @@ export const MobileKeypad: React.FC<MobileKeypadProps> = ({
   ];
 
   const algebraKeys = [
-    ['x', 'y', 'a', 'b'],
+    ['x', 'y', 'a', 'b', 'n'],
     ['7', '8', '9', '+'],
     ['4', '5', '6', '-'],
     ['1', '2', '3', 'Backspace'],
@@ -76,7 +76,7 @@ export const MobileKeypad: React.FC<MobileKeypadProps> = ({
               if (key === 'Enter') {
                 return renderKey(key as KeypadKey, <Check className="w-6 h-6" />, 'flex-1 bg-blue-500 text-white border-blue-600 active:bg-blue-600');
               }
-              if (['+', '-', '*', '/', '(', ')', 'x', 'y', 'a', 'b'].includes(key)) {
+              if (['+', '-', '*', '/', '(', ')', 'x', 'y', 'a', 'b', 'n'].includes(key)) {
                 return renderKey(key as KeypadKey, key, 'flex-1 bg-gray-50 text-indigo-700');
               }
               return renderKey(key as KeypadKey, key, 'flex-1');
