@@ -50,7 +50,7 @@ export class Canonicalizer {
 
   private static processRecursive(node: MathNode, options: CanonicalizeOptions): MathNode {
     const clone = ExpressionTransformer.clone(node);
-    
+
     switch (clone.type) {
       case 'binary_op': {
         const b = clone as BinaryOpNode;
@@ -79,7 +79,7 @@ export class Canonicalizer {
    */
   private static canonicalizeAddition(node: BinaryOpNode, options: CanonicalizeOptions): MathNode {
     const terms = this.collectAdditiveTerms(node);
-    
+
     let resultTerms: Term[] = [];
 
     if (options.combineLikeTerms) {
@@ -110,7 +110,7 @@ export class Canonicalizer {
 
     // Convert back to nodes
     const resultNodes: MathNode[] = [];
-    
+
     for (const term of resultTerms) {
       if (term.variable === '') {
         resultNodes.push({ type: 'number', id: Math.random().toString(), value: term.coefficient.toString() } as NumberNode);
@@ -150,7 +150,7 @@ export class Canonicalizer {
     }
     if (node.type === 'variable') {
       const name = (node as VariableNode).name;
-      const match = name.match(/^([-+]?\d*)(.*)$/);
+      const match = name.match(/^([-+]?\\d*)(.*)$/);
       if (match) {
         let coeffStr = match[1];
         const varPart = match[2];
@@ -158,7 +158,7 @@ export class Canonicalizer {
         if (coeffStr === '-') coeff = -1;
         else if (coeffStr === '+') coeff = 1;
         else if (coeffStr !== '') coeff = parseInt(coeffStr);
-        
+
         return [{ coefficient: coeff * multiplier, variable: varPart }];
       }
     }
@@ -177,7 +177,7 @@ export class Canonicalizer {
 
   private static buildBalancedTree(nodes: MathNode[], op: BinaryOperator): MathNode {
     if (nodes.length === 1) return nodes[0];
-    
+
     // Simple left-heavy tree for now
     let root = nodes[0];
     for (let i = 1; i < nodes.length; i++) {

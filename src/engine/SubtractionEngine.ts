@@ -277,13 +277,26 @@ export class SubtractionEngine implements MathEngine<SubtractionConfig> {
     }
 
     if (!correct) {
+      let errorType: any = 'CALCULATION_ERROR';
+      if (currentStep.type === 'borrow') {
+        errorType = 'BORROW_ERROR';
+      } else if (currentStep.type === 'carry') {
+        errorType = 'CARRY_ERROR';
+      }
+
       hints.push({
         messageKey: `hint_${currentStep.type}_error`,
         highlightCells: currentStep.dependencies || [],
+        errorType
       });
     }
 
-    return { correct, errors, hints };
+    return { 
+      correct, 
+      errorType: hints.length > 0 ? (hints[0].errorType || 'CALCULATION_ERROR') : null,
+      errors, 
+      hints 
+    };
   }
 
   private createEmptyCell(r: number, c: number): Cell {

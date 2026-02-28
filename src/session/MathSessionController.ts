@@ -43,7 +43,7 @@ export class MathSessionController<TConfig = any> {
 
   public start(config: TConfig): void {
     const stepResult = this.engine.generate(config);
-    
+
     // Create an empty user grid based on the generated grid
     const userGrid: GridMatrix = JSON.parse(JSON.stringify(stepResult.grid));
     for (let r = 0; r < userGrid.length; r++) {
@@ -114,6 +114,7 @@ export class MathSessionController<TConfig = any> {
           hintMessage: null,
           hintSeverity: 'none',
           hintSkillTag: undefined,
+          errorType: null,
         });
       } else {
         const highlights = validation.hints?.[0]?.highlightCells.map(pos => `${pos.r},${pos.c}`) || [];
@@ -121,7 +122,8 @@ export class MathSessionController<TConfig = any> {
         const hintMessage = validation.hints?.[0]?.message || null;
         const hintSeverity = validation.hints?.[0]?.severity || 'procedural';
         const hintSkillTag = validation.hints?.[0]?.skillTag;
-        
+        const errorType = validation.errorType;
+
         this.transition('error', {
           grid: newGrid,
           highlights,
@@ -129,6 +131,7 @@ export class MathSessionController<TConfig = any> {
           hintMessage,
           hintSeverity,
           hintSkillTag,
+          errorType,
         });
       }
     } else {
@@ -140,6 +143,7 @@ export class MathSessionController<TConfig = any> {
         hintMessage: null,
         hintSeverity: 'none',
         hintSkillTag: undefined,
+        errorType: null,
       });
     }
   }
@@ -168,7 +172,7 @@ export class MathSessionController<TConfig = any> {
     if (this.state.status !== 'solving' && this.state.status !== 'error') return;
 
     this.saveSnapshot();
-    
+
     const newGrid = this.state.grid.map(row => row.map(cell => {
       if (cell.isEditable) {
         return { ...cell, value: '' };

@@ -1,4 +1,4 @@
-export type TelemetryEventType = 'input' | 'step_transition' | 'error' | 'session_start' | 'session_end';
+export type TelemetryEventType = 'input' | 'step_transition' | 'error' | 'diagnostic_event' | 'session_start' | 'session_end';
 
 export interface TelemetryEvent {
   id: string;
@@ -28,6 +28,4 @@ export interface ErrorPayload {
   inputValue: string;
   expectedValue: string;
   errorType: string;
-  severity?: 'minor' | 'procedural' | 'conceptual' | 'none';
-  skillTag?: string;
 }

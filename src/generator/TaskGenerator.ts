@@ -5,7 +5,6 @@ import { SubtractionStrategy } from './strategies/subtraction.strategy';
 import { MultiplicationStrategy } from './strategies/multiplication.strategy';
 import { DivisionStrategy } from './strategies/division.strategy';
 import { AlgebraStrategy } from './strategies/algebra.strategy';
-import { SimplifyTermsStrategy } from './strategies/simplify_terms.strategy';
 import { StudentModel } from '../student/StudentModel';
 
 export interface GenerationStrategy {
@@ -25,7 +24,6 @@ export class TaskGenerator {
       mul: new MultiplicationStrategy(),
       div: new DivisionStrategy(),
       algebra: new AlgebraStrategy(),
-      simplify_terms: new SimplifyTermsStrategy(),
     };
   }
 

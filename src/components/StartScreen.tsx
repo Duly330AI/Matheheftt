@@ -78,21 +78,8 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart, onBack, onOpe
                  ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
                  : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
              )}
-             title="Klammern auflösen"
           >
-            a(b+c)
-          </button>
-          <button
-             onClick={() => setTaskType('simplify_terms')}
-             className={cn(
-               "px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all",
-               taskType === 'simplify_terms'
-                 ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
-                 : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
-             )}
-             title="Terme zusammenfassen"
-          >
-            2x+3x
+            (x)
           </button>
         </div>
 

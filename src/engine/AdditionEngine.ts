@@ -166,16 +166,23 @@ export class AdditionEngine implements MathEngine<AdditionConfig> {
         hints.push({
           messageKey: 'hint_carry_error',
           highlightCells: currentStep.dependencies || [],
+          errorType: 'CARRY_ERROR'
         });
       } else if (currentStep.type === 'add_column') {
         hints.push({
           messageKey: 'hint_add_column_error',
           highlightCells: currentStep.dependencies || [],
+          errorType: 'CALCULATION_ERROR'
         });
       }
     }
 
-    return { correct, errors, hints };
+    return { 
+      correct, 
+      errorType: hints.length > 0 ? (hints[0].errorType || 'CALCULATION_ERROR') : null,
+      errors, 
+      hints 
+    };
   }
 
   private createEmptyCell(r: number, c: number): Cell {

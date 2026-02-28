@@ -1,4 +1,4 @@
-export type OperationType = 'add' | 'sub' | 'mul' | 'div' | 'algebra' | 'simplify_terms';
+export type OperationType = 'add' | 'sub' | 'mul' | 'div' | 'algebra';
 
 export type DifficultyProfile = {
   operation: OperationType;
@@ -31,7 +31,6 @@ export interface ProblemConfig {
   factor?: string;
   terms?: string[];
   operators?: string[];
-  level?: number;
 }
 
 export interface GenerationStrategy {

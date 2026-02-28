@@ -16,7 +16,6 @@ import { TaskType, Difficulty, GameMode, SessionState, Profile } from '../types'
 import { CognitiveLoadState } from '../cognitive/types';
 import { LearningPathPlanner } from '../planner/LearningPathPlanner';
 import { TaskDescriptor, SessionSummary } from '../planner/types';
-import { MobileKeypad, KeypadKey } from '../ui/keypad/MobileKeypad';
 
 interface MathSessionScreenProps {
   activeProfile: Profile;
@@ -72,7 +71,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     if (taskType === '*') return 'multiplication';
     if (taskType === ':') return 'division';
     if (taskType === 'algebra') return 'algebra';
-    if (taskType === 'simplify_terms') return 'simplify_terms';
     return 'addition';
   });
 
@@ -85,7 +83,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     else if (taskType === '*') setCurrentOperation('multiplication');
     else if (taskType === ':') setCurrentOperation('division');
     else if (taskType === 'algebra') setCurrentOperation('algebra');
-    else if (taskType === 'simplify_terms') setCurrentOperation('simplify_terms');
   }, [taskType]);
   const [score, setScore] = useState(0);
   const [tasksCompleted, setTasksCompleted] = useState(0);
@@ -96,16 +93,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
   const [plannerDecisions, setPlannerDecisions] = useState<any[]>([]);
   const allSessionEventsRef = React.useRef<any[]>([]);
   const lastErrorEventKeyRef = React.useRef<string | null>(null);
-  const cognitiveTimelineRef = React.useRef(cognitiveTimeline);
-  const plannerDecisionsRef = React.useRef(plannerDecisions);
-
-  useEffect(() => {
-    cognitiveTimelineRef.current = cognitiveTimeline;
-  }, [cognitiveTimeline]);
-
-  useEffect(() => {
-    plannerDecisionsRef.current = plannerDecisions;
-  }, [plannerDecisions]);
 
   // Planner State
   const planner = useMemo(() => new LearningPathPlanner(Date.now()), []);
@@ -127,7 +114,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
   const { state, start, input, next, reset, undo, clearUserInputs } = useMathSession(engine);
 
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
-  const [activeCellId, setActiveCellId] = useState<string | null>(null);
   const [animation, setAnimation] = useState<AnimationInstruction | null>(null);
   const [taskProcessed, setTaskProcessed] = useState(false);
 
@@ -148,8 +134,8 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
             gameMode,
             currentTaskIndex: tasksCompleted,
             telemetryEvents: allSessionEventsRef.current,
-            cognitiveTimeline: cognitiveTimelineRef.current,
-            plannerDecisions: plannerDecisionsRef.current
+            cognitiveTimeline,
+            plannerDecisions
           });
         }
       }, 1000);
@@ -162,25 +148,44 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     setTaskProcessed(false);
     let nextOp = currentOperation;
 
-    // If mixed mode, pick random operation based on seed to ensure determinism across renders
+    // If mixed mode, use planner to pick next task
     if (taskType === 'mixed') {
-        const ops = ['addition', 'subtraction', 'multiplication', 'division'];
-        // Simple hash of seed to pick operation
-        const opIndex = Math.floor(seed % ops.length);
-        nextOp = ops[opIndex];
+        const availableTasks: TaskDescriptor[] = [
+          { id: 'add_easy', operation: 'add', difficulty: { operation: 'add', digits: 2, requireCarry: false }, skillsTrained: ['addition_no_carry'], estimatedTime: 10 },
+          { id: 'add_medium', operation: 'add', difficulty: { operation: 'add', digits: 3, requireCarry: true }, skillsTrained: ['addition_carry'], estimatedTime: 20 },
+          { id: 'sub_easy', operation: 'sub', difficulty: { operation: 'sub', digits: 2, requireBorrow: false, allowNegative: false }, skillsTrained: ['subtraction_no_borrow'], estimatedTime: 15 },
+          { id: 'sub_medium', operation: 'sub', difficulty: { operation: 'sub', digits: 3, requireBorrow: true, allowNegative: false }, skillsTrained: ['subtraction_borrow'], estimatedTime: 25 },
+          { id: 'mul_easy', operation: 'mul', difficulty: { operation: 'mul', digits: 2 }, skillsTrained: ['multiplication_basic'], estimatedTime: 20 },
+          { id: 'div_easy', operation: 'div', difficulty: { operation: 'div', digits: 2, requireRemainder: false }, skillsTrained: ['division_process'], estimatedTime: 25 },
+        ];
+
+        const planned = planner.nextTask({
+          studentModel,
+          availableTasks,
+          sessionHistory
+        });
+
+        nextOp = planned.task.operation === 'add' ? 'addition' :
+                 planned.task.operation === 'sub' ? 'subtraction' :
+                 planned.task.operation === 'mul' ? 'multiplication' :
+                 planned.task.operation === 'div' ? 'division' : 'addition';
+        
+        // Use the difficulty from the planned task
+        const plannedDifficulty = planned.task.id.includes('easy') ? 'easy' : 'medium';
         
         if (nextOp !== currentOperation) {
             setCurrentOperation(nextOp);
             return; // Wait for re-render with new engine
         }
+        
+        // We need a way to pass the planned difficulty to the generator, but for now we'll just log it
+        setPlannerDecisions(prev => [...prev, {
+          task: planned.task,
+          score: planned.score,
+          reason: planned.reason
+        }]);
     } else if (taskType === 'algebra') {
         nextOp = 'algebra';
-        if (nextOp !== currentOperation) {
-            setCurrentOperation(nextOp);
-            return;
-        }
-    } else if (taskType === 'simplify_terms') {
-        nextOp = 'simplify_terms';
         if (nextOp !== currentOperation) {
             setCurrentOperation(nextOp);
             return;
@@ -231,35 +236,31 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           digits: difficulty === 'easy' ? 2 : 3,
           requireRemainder: difficulty === 'hard'
         };
-      } else if (nextOp === 'algebra') {
+      } else {
+        // Algebra
         profile = {
           operation: 'algebra',
           digits: 1,
           pedagogicFocus: 'expand'
         };
-      } else {
-        // simplify_terms
-        profile = {
-          operation: 'simplify_terms',
-          digits: digits // We can use digits to map to level in strategy
-        };
       }
 
       const config = generator.generate(profile, studentModel);
 
-      // Log planner decision
-      setPlannerDecisions(prev => [...prev, {
-        task: { id: `${nextOp}_${difficulty}` },
-        score: 0.95,
-        reason: `Passend zum Profil: ${difficulty}`
-      }]);
+      if (taskType !== 'mixed') {
+        // Log planner decision for non-mixed modes
+        setPlannerDecisions(prev => [...prev, {
+          task: { id: `${nextOp}_${difficulty}` },
+          score: 0.95,
+          reason: `Passend zum Profil: ${difficulty}`
+        }]);
+      }
 
       if (nextOp === 'addition' && config.operands) start({ operands: config.operands });
       else if (nextOp === 'subtraction' && config.minuend !== undefined) start({ minuend: config.minuend, subtrahend: config.subtrahend, method: 'complement' });
       else if (nextOp === 'multiplication' && config.multiplicand !== undefined) start({ multiplicand: config.multiplicand, multiplier: config.multiplier });
       else if (nextOp === 'division' && config.dividend !== undefined) start({ dividend: config.dividend, divisor: config.divisor });
       else if (nextOp === 'algebra') start(config);
-      else if (nextOp === 'simplify_terms') start(config);
     });
   }, [currentOperation, seed, taskType, difficulty, studentModel, start, telemetry, selectedTable]);
 
@@ -277,9 +278,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
 
     const nextFocus = flowEngine.getNextFocus(state);
     setFocusTarget(nextFocus);
-    if (nextFocus?.cellId) {
-      setActiveCellId(nextFocus.cellId);
-    }
 
     if (flowEngine.shouldAdvanceStep(state)) {
       const timer = setTimeout(() => {
@@ -309,11 +307,19 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
 
       telemetry.log('error', {
         stepIndex: state.currentStepIndex,
-        errorType: state.hintMessageKey,
-        highlights: state.highlights,
-        severity: state.hintSeverity,
-        skillTag: state.hintSkillTag
+        errorType: state.errorType || state.hintMessageKey,
+        hintMessageKey: state.hintMessageKey,
+        highlights: state.highlights
       });
+
+      if (state.errorType) {
+        telemetry.log('diagnostic_event', {
+          stepIndex: state.currentStepIndex,
+          errorType: state.errorType,
+          operation: currentOperation,
+          difficulty: difficulty
+        });
+      }
     }
 
     if (state.status !== 'error') {
@@ -329,9 +335,21 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
       const newTasksCompleted = tasksCompleted + 1;
       setTasksCompleted(newTasksCompleted);
 
+      // Determine task success and primary error
+      const taskEvents = telemetry.getEvents();
+      const errorEvents = taskEvents.filter(e => e.type === 'error');
+      const success = errorEvents.length === 0;
+      const primaryErrorType = errorEvents.length > 0 ? errorEvents[0].payload.errorType : null;
+
+      setSessionHistory(prev => [...prev, {
+        taskId: `${currentOperation}_${difficulty}`,
+        success,
+        errorType: primaryErrorType,
+        timestamp: Date.now()
+      }]);
+
       // Update Student Model
       PerformanceMonitor.measure('student_model_update', () => {
-        const taskEvents = telemetry.getEvents();
         studentModel.updateFromTelemetry(taskEvents);
         allSessionEventsRef.current = [...allSessionEventsRef.current, ...taskEvents];
         localStorage.setItem(`mathTrainer.studentModel.${activeProfile.id}`, studentModel.serialize());
@@ -382,10 +400,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     });
   };
 
-  const handleCellFocus = (cellId: string) => {
-    setActiveCellId(cellId);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, cellId: string) => {
     if (e.key === 'Enter') {
       if (state.status === 'correct') {
@@ -398,66 +412,8 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     }
   };
 
-  const handleKeypadPress = (key: KeypadKey) => {
-    if (!activeCellId) return;
-
-    if (key === 'Enter') {
-      if (state.status === 'correct') {
-        telemetry.log('step_transition', { 
-          fromStepIndex: state.currentStepIndex, 
-          toStepIndex: state.currentStepIndex + 1 
-        });
-        next();
-      }
-      return;
-    }
-
-    if (key === 'Backspace') {
-      // Find current cell value
-      let currentVal = '';
-      for (const row of state.grid) {
-        for (const cell of row) {
-          if (cell.id === activeCellId) {
-            currentVal = cell.value;
-            break;
-          }
-        }
-      }
-
-      if (!currentVal) {
-        // If empty, move to previous cell and clear it
-        const currentStep = state.steps[state.currentStepIndex];
-        if (currentStep) {
-          const targetIds = currentStep.targetCells.map(pos => `${pos.r},${pos.c}`);
-          const currentIndex = targetIds.indexOf(activeCellId);
-          if (currentIndex > 0) {
-            const prevId = targetIds[currentIndex - 1];
-            handleCellChange(prevId, '');
-            handleCellFocus(prevId);
-            // Force DOM focus
-            setTimeout(() => {
-              const input = document.getElementById(`cell-${prevId.replace(',', '\\,')}`);
-              if (input) input.focus();
-            }, 10);
-          }
-        }
-      } else {
-        // Clear current cell
-        handleCellChange(activeCellId, '');
-      }
-      return;
-    }
-
-    // For other keys, append or replace depending on the cell type
-    // Since our cells mostly take single characters (except maybe algebra),
-    // let's just replace the value for now.
-    handleCellChange(activeCellId, key);
-  };
-
-  const isAlgebraMode = currentOperation === 'algebra' || currentOperation === 'simplify_terms';
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-48 md:pb-0">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Toolbar 
         activeProfile={activeProfile}
         sessionState={{
@@ -484,7 +440,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
             activeStep={state.status !== 'finished' ? state.steps[state.currentStepIndex] : undefined}
             onCellChange={handleCellChange}
             onCellKeyDown={handleKeyDown}
-            onCellFocus={handleCellFocus}
             highlightCells={state.highlights}
             focusTargetId={focusTarget?.cellId}
             animation={animation}
@@ -553,12 +508,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           </div>
         </div>
       </div>
-
-      <MobileKeypad 
-        onKeyPress={handleKeypadPress} 
-        mode={isAlgebraMode ? 'algebra' : 'numeric'} 
-        isVisible={state.status !== 'finished'}
-      />
     </div>
   );
 };

@@ -10,7 +10,6 @@ export interface SkillStats {
   hintUsage: number;
   score: number; // The new graph-based score [0, 1]
   lastUpdated: number; // Timestamp for decay
-  history: { timestamp: number, score: number }[];
 }
 
 export class StudentModel {
@@ -34,7 +33,6 @@ export class StudentModel {
           hintUsage: 0,
           score: 0.5, // Default starting score
           lastUpdated: now,
-          history: [{ timestamp: now, score: 0.5 }],
         };
       }
     }
@@ -51,26 +49,17 @@ export class StudentModel {
 
       if (event.type === 'error') {
         const errorType = event.payload.errorType;
-        const severity = event.payload.severity;
-        const explicitSkillTag = event.payload.skillTag;
-        
-        const skillId = explicitSkillTag || this.mapErrorToSkill(errorType, currentOperation);
+        const skillId = this.mapErrorTypeToSkill(errorType, currentOperation);
         if (skillId && this.skills[skillId]) {
           this.skills[skillId].errors += 1;
           this.skills[skillId].attempts += 1;
           this.skills[skillId].lastUpdated = now;
 
-          // Weight score impact by severity
-          let impact = -0.1;
-          if (severity === 'conceptual') impact = -0.2;
-          else if (severity === 'minor') impact = -0.05;
-
           // Propagate negative score
-          this.graph.propagateScore(skillId, impact, (id, delta) => {
+          this.graph.propagateScore(skillId, -0.1, (id, delta) => {
             if (this.skills[id]) {
               this.skills[id].score = Math.max(0, this.skills[id].score + delta);
               this.skills[id].lastUpdated = now;
-              this.skills[id].history.push({ timestamp: now, score: this.skills[id].score });
             }
           });
         }
@@ -93,7 +82,6 @@ export class StudentModel {
             if (this.skills[id]) {
               this.skills[id].score = Math.min(1, this.skills[id].score + delta);
               this.skills[id].lastUpdated = now;
-              this.skills[id].history.push({ timestamp: now, score: this.skills[id].score });
             }
           });
         }
@@ -101,7 +89,38 @@ export class StudentModel {
     }
   }
 
-  private mapErrorToSkill(errorType: string, operation: string | null): string | null {
+  private mapErrorTypeToSkill(errorType: string | null, operation: string | null): string | null {
+    if (!errorType || !operation) return null;
+
+    const op = operation.toLowerCase();
+    
+    // Map specific error types to skills based on operation
+    if (op === 'add' || op === 'addition') {
+      if (errorType === 'CARRY_ERROR') return 'addition_carry';
+      return 'addition_no_carry';
+    }
+    
+    if (op === 'sub' || op === 'subtraction') {
+      if (errorType === 'BORROW_ERROR') return 'subtraction_borrow';
+      return 'subtraction_no_borrow';
+    }
+    
+    if (op === 'mul' || op === 'multiplication') {
+      return 'multiplication_basic';
+    }
+    
+    if (op === 'div' || op === 'division') {
+      if (errorType === 'ESTIMATION_ERROR') return 'division_estimation';
+      if (errorType === 'CALCULATION_ERROR') return 'division_subtract'; // Or multiply
+      if (errorType === 'FORGOT_BRING_DOWN') return 'division_process';
+      return 'division_process';
+    }
+    
+    if (op === 'algebra') {
+      return 'algebra_expand_brackets';
+    }
+
+    // Fallback to legacy hint keys if errorType is actually a hint key
     switch (errorType) {
       case 'hint_carry_error': return 'addition_carry';
       case 'hint_borrow_error': return 'subtraction_borrow';
@@ -129,7 +148,6 @@ export class StudentModel {
     if (op === 'mul' || op === 'multiplication') return 'multiplication_basic';
     if (op === 'div' || op === 'division') return 'division_process';
     if (op === 'algebra') return 'algebra_expand_brackets';
-    if (op === 'simplify_terms') return 'algebra_simplify_terms';
     
     return null;
   }
@@ -160,14 +178,6 @@ export class StudentModel {
       scores[skillId] = this.getSkillScore(skillId);
     }
     return scores;
-  }
-
-  public getSkillHistory(): Record<string, { timestamp: number, score: number }[]> {
-    const history: Record<string, { timestamp: number, score: number }[]> = {};
-    for (const skillId in this.skills) {
-      history[skillId] = this.skills[skillId].history || [];
-    }
-    return history;
   }
 
   public getWeakSkills(): string[] {

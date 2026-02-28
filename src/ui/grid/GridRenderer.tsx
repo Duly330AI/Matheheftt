@@ -9,7 +9,6 @@ export type GridRendererProps = {
   activeStep?: Step;
   onCellChange?: (cellId: string, value: string) => void;
   onCellKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>, cellId: string) => void;
-  onCellFocus?: (cellId: string) => void;
   highlightCells?: string[];
   cellSize?: number;
   focusTargetId?: string | null;
@@ -21,7 +20,6 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
   activeStep,
   onCellChange,
   onCellKeyDown,
-  onCellFocus,
   highlightCells = [],
   cellSize = 56, // default 56px for good touch targets
   focusTargetId,
@@ -133,7 +131,6 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
               highlight={highlightCellIds.has(cell.id)}
               onChange={onCellChange}
               onKeyDown={onCellKeyDown}
-              onFocus={onCellFocus}
               style={{ width: '100%', height: '100%' }}
             />
           </motion.div>

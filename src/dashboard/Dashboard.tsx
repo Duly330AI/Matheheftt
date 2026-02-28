@@ -90,7 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-80">
-                <SkillRadar skills={snapshot.skills} skillHistory={snapshot.skillHistory} />
+                <SkillRadar skills={snapshot.skills} />
               </div>
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-80 flex flex-col justify-center">
                 <CognitiveStateTimeline timeline={cognitiveTimeline} />

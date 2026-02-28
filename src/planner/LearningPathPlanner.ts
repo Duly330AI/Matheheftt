@@ -37,6 +37,44 @@ export class LearningPathPlanner {
     const { studentModel, availableTasks, sessionHistory } = input;
     const weakSkills = studentModel.getWeakSkills();
 
+    // Check for repeated specific errors for focused practice
+    const recentErrors = sessionHistory.slice(-3).filter(h => !h.success && h.errorType);
+    if (recentErrors.length >= 2) {
+      const errorCounts = recentErrors.reduce((acc, curr) => {
+        if (curr.errorType) {
+          acc[curr.errorType] = (acc[curr.errorType] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const dominantError = Object.entries(errorCounts).find(([_, count]) => count >= 2);
+      
+      if (dominantError) {
+        const [errorType] = dominantError;
+        // Find a task that specifically trains the skill related to this error
+        // This is a simplified mapping, ideally this comes from the StudentModel
+        const errorSkillMap: Record<string, string> = {
+          'DISTRIBUTION': 'algebra_expand_brackets',
+          'CARRY_ERROR': 'addition_carry',
+          'BORROW_ERROR': 'subtraction_borrow',
+          'ESTIMATION_ERROR': 'division_estimation',
+          'FORGOT_BRING_DOWN': 'division_process'
+        };
+        
+        const targetSkill = errorSkillMap[errorType];
+        if (targetSkill) {
+          const focusedTask = availableTasks.find(t => t.skillsTrained.includes(targetSkill));
+          if (focusedTask) {
+            return {
+              task: focusedTask,
+              score: 100, // Max score for intervention
+              reason: `Focused practice intervention for repeated error: ${errorType}`
+            };
+          }
+        }
+      }
+    }
+
     let bestTask: TaskDescriptor | null = null;
     let bestScore = -Infinity;
     let bestReason = '';
@@ -94,12 +132,20 @@ export class LearningPathPlanner {
     // If the student failed similar tasks recently, penalize
     const recentFailures = history
       .slice(-3)
-      .filter(h => !h.success && this.isSimilarTask(h.taskId, task.id)).length;
+      .filter(h => !h.success && this.isSimilarTask(h.taskId, task.id));
     
-    if (recentFailures > 0) {
-      const penalty = recentFailures * this.config.weights.frustrationRisk;
+    if (recentFailures.length > 0) {
+      // If there's a specific error type, we might want to schedule a micro-intervention
+      // instead of just penalizing. For now, we penalize heavily to avoid frustration.
+      const penalty = recentFailures.length * this.config.weights.frustrationRisk;
       score -= penalty;
-      reasons.push(`Avoids frustration (recent failures: ${recentFailures})`);
+      
+      const errorTypes = recentFailures.map(f => f.errorType).filter(Boolean);
+      if (errorTypes.length > 0) {
+        reasons.push(`Avoids frustration (recent failures: ${recentFailures.length}, errors: ${errorTypes.join(', ')})`);
+      } else {
+        reasons.push(`Avoids frustration (recent failures: ${recentFailures.length})`);
+      }
     }
 
     // 4. Spacing (Avoid immediate repetition of exact same task type)

@@ -2,20 +2,7 @@ import { MathNode, BinaryOpNode, NumberNode, VariableNode } from '../ast/types';
 import { Canonicalizer } from '../ast/Canonicalizer';
 import { AnswerComparator } from '../ast/AnswerComparator';
 import { StructuralComparator } from '../ast/StructuralComparator';
-
-export type ErrorType = 
-  | 'SIGN' 
-  | 'LIKE_TERM' 
-  | 'DISTRIBUTION' 
-  | 'ORDER' 
-  | 'CONCEPTUAL' 
-  | 'INCOMPLETE'
-  | 'LIKE_TERM_NOT_COMBINED'
-  | 'CONSTANT_NOT_COMBINED'
-  | 'PARTIAL_SIMPLIFICATION'
-  | 'SIGN_MISAPPLICATION'
-  | 'VARIABLE_MISMATCH'
-  | 'NONE';
+import { ErrorType } from '../types';
 
 export type Severity = 'minor' | 'procedural' | 'conceptual' | 'none';
 
@@ -75,7 +62,7 @@ export class DiagnosticEngine {
     // 3. Check for equivalence
     if (structuralComparison.isEquivalent) {
        // It's mathematically equivalent but not identical to the expected form.
-       
+
        if (structuralComparison.studentTermsCount > structuralComparison.expectedTermsCount) {
          // Check if they left constants uncombined
          if (structuralComparison.studentConstantsCount > structuralComparison.expectedConstantsCount) {
@@ -87,7 +74,7 @@ export class DiagnosticEngine {
              hint: 'Du hast die Zahlen noch nicht vollständig zusammengefasst.'
            });
          }
-         
+
          if (originalNode) {
            const originalUncombined = Canonicalizer.canonicalize(originalNode, { combineLikeTerms: false, sortTerms: true, removeZero: true });
            const originalTermsCount = this.countTerms(originalUncombined);
@@ -101,7 +88,7 @@ export class DiagnosticEngine {
              });
            }
          }
-         
+
          // If we haven't already added a specific constant error, add the general like term error
          if (results.length === 0 || !results.some(r => r.errorType === 'CONSTANT_NOT_COMBINED')) {
            results.push({
@@ -114,7 +101,7 @@ export class DiagnosticEngine {
          }
          return results;
        }
-       
+
        // If terms count is the same, but structure is different, it might just be a different order.
        // We consider this correct!
        if (structuralComparison.isCommutativeEquivalent) {
@@ -125,7 +112,7 @@ export class DiagnosticEngine {
          });
          return results;
        }
-       
+
        // Equivalent but not commutative equivalent (e.g. x+x vs 2x if somehow count was same, though impossible here)
        results.push({
          isCorrect: true,
@@ -172,7 +159,7 @@ export class DiagnosticEngine {
         hint: 'Das Ergebnis stimmt noch nicht ganz. Schau dir die Rechenschritte nochmal an.'
       });
     }
-    
+
     return results;
   }
 
@@ -197,7 +184,7 @@ export class DiagnosticEngine {
   private static hasVariableMismatch(student: MathNode, expected: MathNode): boolean {
     const studentVars = this.extractVariables(student);
     const expectedVars = this.extractVariables(expected);
-    
+
     // If expected has variables but student has none (or different ones)
     for (const v of expectedVars) {
       if (!studentVars.has(v)) return true;

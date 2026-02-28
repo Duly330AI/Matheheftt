@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Profile, TaskType } from '../types';
 
-const STORAGE_KEY = 'mathTrainer.profiles';
-const ACTIVE_PROFILE_KEY = 'mathTrainer.activeProfileId';
+const STORAGE_KEY = 'math_notebook_profiles';
+const ACTIVE_PROFILE_KEY = 'math_notebook_active_profile_id';
 
 export function useProfiles() {
   const [profiles, setProfiles] = useState<Profile[]>([]);

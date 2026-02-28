@@ -3,7 +3,6 @@ import { CognitiveLoadState } from '../cognitive/types';
 export interface StudentSnapshot {
   timestamp: number;
   skills: Record<string, number>; // Skill ID -> Score (0-1)
-  skillHistory: Record<string, { timestamp: number, score: number }[]>;
   loadState: CognitiveLoadState;
   accuracy: number; // 0-1
   avgSolveTime: number; // ms

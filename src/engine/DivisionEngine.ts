@@ -355,43 +355,61 @@ export class DivisionEngine implements MathEngine<DivisionConfig> {
             hints.push({
               messageKey: 'division_estimate_too_large',
               highlightCells: currentStep.targetCells,
+              errorType: 'ESTIMATION_ERROR'
             });
           } else if (userVal < expectedVal) {
             hints.push({
               messageKey: 'division_estimate_too_small',
               highlightCells: currentStep.targetCells,
+              errorType: 'ESTIMATION_ERROR'
             });
           }
         } else {
           hints.push({
             messageKey: 'hint_divide_estimate_error',
             highlightCells: currentStep.targetCells,
+            errorType: 'ESTIMATION_ERROR'
           });
         }
       } else if (currentStep.type === 'divide_multiply') {
         hints.push({
           messageKey: 'multiply_error',
           highlightCells: currentStep.targetCells,
+          errorType: 'CALCULATION_ERROR'
         });
       } else if (currentStep.type === 'divide_subtract') {
         hints.push({
           messageKey: 'subtract_error',
           highlightCells: currentStep.targetCells,
+          errorType: 'CALCULATION_ERROR'
         });
       } else if (currentStep.type === 'divide_bring_down') {
         hints.push({
           messageKey: 'forgot_bring_down',
           highlightCells: currentStep.targetCells,
+          errorType: 'FORGOT_BRING_DOWN'
+        });
+      } else if (currentStep.type === 'divide_remainder') {
+        hints.push({
+          messageKey: 'hint_divide_remainder_error',
+          highlightCells: currentStep.targetCells,
+          errorType: 'REMAINDER_ERROR'
         });
       } else {
         hints.push({
           messageKey: `hint_${currentStep.type}_error`,
           highlightCells: currentStep.targetCells,
+          errorType: 'CALCULATION_ERROR'
         });
       }
     }
 
-    return { correct, errors, hints };
+    return { 
+      correct, 
+      errorType: hints.length > 0 ? (hints[0].errorType || 'CALCULATION_ERROR') : null,
+      errors, 
+      hints 
+    };
   }
 
   private createEmptyCell(r: number, c: number): Cell {

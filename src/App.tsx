@@ -19,7 +19,7 @@ function App() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  
+
   // Session Config
   const [sessionConfig, setSessionConfig] = useState<{
     taskType: TaskType;
@@ -143,14 +143,14 @@ function App() {
 
   const handleSessionFinish = (state: SessionState) => {
     setLastSessionState(state);
-    
+
     // Update profile score
     if (activeProfile) {
       const updatedProfile = { ...activeProfile };
-      
+
       // Update total score
       updatedProfile.totalScore += state.score;
-      
+
       // Update history
       updatedProfile.history = [...updatedProfile.history, {
         date: Date.now(),
@@ -181,7 +181,7 @@ function App() {
       const newHighscores = [...currentHighscores, state.score]
         .sort((a, b) => b - a)
         .slice(0, 5); // Keep top 5
-      
+
       updatedProfile.highscores = {
         ...(updatedProfile.highscores || {}),
         [categoryKey]: newHighscores
@@ -285,7 +285,7 @@ function App() {
             const prevEndIndex = i === 0 ? -1 : (dashboardProfile.telemetryHistory || []).indexOf(arr[i-1]);
             const currentIndex = (dashboardProfile.telemetryHistory || []).indexOf(e);
             const taskEvents = (dashboardProfile.telemetryHistory || []).slice(prevEndIndex + 1, currentIndex + 1);
-            
+
             const errors = taskEvents.filter(te => te.type === 'error').length;
             const steps = taskEvents.filter(te => te.type === 'step_transition').length;
             const total = steps + errors;

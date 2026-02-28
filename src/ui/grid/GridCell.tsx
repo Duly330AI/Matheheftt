@@ -7,11 +7,10 @@ export type GridCellProps = {
   highlight: boolean;
   onChange?: (cellId: string, value: string) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>, cellId: string) => void;
-  onFocus?: (cellId: string) => void;
   style: React.CSSProperties;
 };
 
-export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, onFocus, style }: GridCellProps) => {
+export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, style }: GridCellProps) => {
   const { role, value, isEditable, id } = cell;
 
   if (role === 'empty') {
@@ -64,7 +63,7 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
       <input
         id={`cell-${id}`}
         type="text"
-        inputMode="none" // Prevents native mobile keyboard
+        inputMode={isAlgebra ? "text" : "numeric"}
         maxLength={1}
         value={value}
         onChange={(e) => {
@@ -82,7 +81,6 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
           }
         }}
         onKeyDown={(e) => onKeyDown?.(e, id)}
-        onFocus={() => onFocus?.(id)}
         style={style}
         className={`${baseClasses} ${roleClasses} ${highlightClasses} ${activeClasses} bg-transparent outline-none text-center caret-transparent cursor-default focus:bg-blue-100 focus:ring-2 focus:ring-blue-500 rounded-md z-20`}
         aria-label={`${role} input`}

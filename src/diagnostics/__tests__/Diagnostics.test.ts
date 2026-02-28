@@ -27,7 +27,7 @@ class MockEngine implements MathEngine {
     };
   }
   validate(stepState: StepState): ValidationResult {
-    return { correct: true, errors: [], hints: [] };
+    return { correct: true, errorType: null, errors: [], hints: [] };
   }
 }
 
@@ -54,7 +54,7 @@ class BadMockEngine implements MathEngine {
     };
   }
   validate(stepState: StepState): ValidationResult {
-    return { correct: true, errors: [], hints: [] };
+    return { correct: true, errorType: null, errors: [], hints: [] };
   }
 }
 

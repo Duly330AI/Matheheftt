@@ -75,6 +75,29 @@ export type StepResult = {
   metadata: StepMeta;
 };
 
+export type ErrorType = 
+  // Algebra
+  | 'SIGN' 
+  | 'LIKE_TERM' 
+  | 'DISTRIBUTION' 
+  | 'ORDER' 
+  | 'CONCEPTUAL' 
+  | 'INCOMPLETE'
+  | 'LIKE_TERM_NOT_COMBINED'
+  | 'CONSTANT_NOT_COMBINED'
+  | 'PARTIAL_SIMPLIFICATION'
+  | 'SIGN_MISAPPLICATION'
+  | 'VARIABLE_MISMATCH'
+  // Arithmetic
+  | 'CARRY_ERROR'
+  | 'BORROW_ERROR'
+  | 'CALCULATION_ERROR'
+  | 'PLACE_VALUE_ERROR'
+  | 'ESTIMATION_ERROR'
+  | 'FORGOT_BRING_DOWN'
+  | 'REMAINDER_ERROR'
+  | 'NONE';
+
 export type CellError = {
   position: Position;
   expected: string;
@@ -87,10 +110,12 @@ export type Hint = {
   highlightCells: Position[];
   severity?: 'minor' | 'procedural' | 'conceptual' | 'none';
   skillTag?: string;
+  errorType?: ErrorType;
 };
 
 export type ValidationResult = {
   correct: boolean;
+  errorType: ErrorType | null;
   errors: CellError[];
   hints?: Hint[];
 };

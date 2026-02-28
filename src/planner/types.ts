@@ -1,4 +1,5 @@
 import { DifficultyProfile, OperationType } from '../generator/profiles/difficultyProfiles';
+import { ErrorType } from '../engine/types';
 
 export interface TaskDescriptor {
   id: string;
@@ -11,6 +12,7 @@ export interface TaskDescriptor {
 export interface SessionSummary {
   taskId: string;
   success: boolean;
+  errorType?: ErrorType | null;
   timestamp: number;
 }
 

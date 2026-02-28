@@ -460,7 +460,7 @@ Architektur muss unterstützen:
 * [x] SeededRandom (Deterministische Zufallszahlen)
 * [x] Difficulty Profiles
 * [x] Student Model Integration (Mock implementation)
-* [x] Anti-Repetition Guard (Full implementation)
+* [ ] Anti-Repetition Guard (Full implementation)
 
 ---
 

@@ -14,7 +14,6 @@ export class SnapshotBuilder {
     
     // Get all skill scores
     const skills = studentModel.getAllSkillScores();
-    const skillHistory = studentModel.getSkillHistory();
     
     const accuracy = this.calculateAccuracy(telemetry);
     const avgSolveTime = this.calculateAvgSolveTime(telemetry);
@@ -24,7 +23,6 @@ export class SnapshotBuilder {
     return {
       timestamp,
       skills,
-      skillHistory,
       loadState: currentLoadState,
       accuracy,
       avgSolveTime,

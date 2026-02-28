@@ -1,4 +1,4 @@
-import { GridMatrix, Step, StepResult } from '../engine/types';
+import { GridMatrix, Step, StepResult, ErrorType } from '../engine/types';
 
 export type MathSessionStatus = 'idle' | 'generated' | 'solving' | 'error' | 'correct' | 'finished';
 
@@ -13,6 +13,7 @@ export type MathSessionState = {
   hintMessage?: string | null;
   hintSeverity?: 'minor' | 'procedural' | 'conceptual' | 'none';
   hintSkillTag?: string;
+  errorType?: ErrorType | null;
   stepResult: StepResult | null;
 };
 

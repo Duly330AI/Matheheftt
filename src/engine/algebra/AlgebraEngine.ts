@@ -19,7 +19,7 @@ import { MathNode, NumberNode, VariableNode, BinaryOpNode, EquationNode } from '
 import { DiagnosticEngine } from '../analysis/DiagnosticEngine';
 
 export interface AlgebraConfig {
-  type: 'expand';
+  type: string;
   factor: string;
   terms: string[]; // e.g. ['x', '4'] for (x + 4)
   operators: string[]; // e.g. ['+'] for (x + 4)
@@ -142,9 +142,11 @@ export class AlgebraEngine implements MathEngine<AlgebraConfig> {
     if (studentValue !== expectedValue) {
       // Basic diagnostic logic
       let hintMessage = 'Das stimmt noch nicht ganz.';
+      let errorType: any = 'CONCEPTUAL';
       
       if (studentValue === '') {
         hintMessage = 'Tippe das Ergebnis für den markierten Bereich ein.';
+        errorType = 'INCOMPLETE';
       } else {
         // Try to guess error type
         // If it's a number and it's wrong, maybe it's a multiplication error
@@ -153,8 +155,10 @@ export class AlgebraEngine implements MathEngine<AlgebraConfig> {
         
         if (!isNaN(studentNum) && !isNaN(expectedNum)) {
            hintMessage = 'Überprüfe deine Multiplikation.';
+           errorType = 'CALCULATION_ERROR';
         } else if (studentValue.length > 0 && !studentValue.includes(expectedValue.replace(/[0-9]/g, ''))) {
            hintMessage = 'Hast du die Variable vergessen oder falsch abgeschrieben?';
+           errorType = 'VARIABLE_MISMATCH';
         }
       }
 
@@ -162,12 +166,13 @@ export class AlgebraEngine implements MathEngine<AlgebraConfig> {
         messageKey: 'hint_algebra_error',
         message: hintMessage,
         highlightCells: currentStep.dependencies || [],
+        errorType
       });
 
-      return { correct: false, errors, hints };
+      return { correct: false, errorType, errors, hints };
     }
 
-    return { correct: true, errors, hints };
+    return { correct: true, errorType: null, errors, hints };
   }
 
   private createEmptyCell(r: number, c: number): Cell {
