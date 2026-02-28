@@ -46,6 +46,10 @@ export function useMathSession<TConfig>(engine: MathEngine<TConfig>) {
     dispatch(() => controllerRef.current.undo());
   }, [dispatch]);
 
+  const check = useCallback(() => {
+    dispatch(() => controllerRef.current.validateStep());
+  }, [dispatch]);
+
   return {
     state,
     start,
@@ -54,5 +58,6 @@ export function useMathSession<TConfig>(engine: MathEngine<TConfig>) {
     reset,
     clearUserInputs,
     undo,
+    check,
   };
 }

@@ -55,8 +55,9 @@ export class DefaultFlowEngine implements FlowEngine {
   }
 
   public shouldAdvanceStep(state: MathSessionState): boolean {
-    // Only advance if the state is explicitly 'correct'
-    return state.status === 'correct';
+    const shouldAdvance = state.status === 'correct';
+    console.log('shouldAdvanceStep:', shouldAdvance, 'Status:', state.status);
+    return shouldAdvance;
   }
 
   public shouldAutoFocusNext(state: MathSessionState): boolean {

@@ -92,12 +92,19 @@ export class MathSessionController<TConfig = any> {
 
     if (!cellUpdated) return;
 
-    // Check if all target cells for the current step are filled
-    const allFilled = currentStep.targetCells.every(
-      pos => newGrid[pos.r][pos.c].value !== ''
-    );
+    // Validate immediately on every input change to provide instant feedback.
+    // The engine is responsible for handling incomplete inputs gracefully (e.g. via prefix matching).
+    this.validateStep(newGrid);
+  }
 
-    if (allFilled) {
+  public validateStep(gridToValidate?: GridMatrix): void {
+      if (this.state.status !== 'solving' && this.state.status !== 'error') return;
+      
+      const currentStep = this.state.steps[this.state.currentStepIndex];
+      if (!currentStep) return;
+
+      const newGrid = gridToValidate || this.state.grid;
+
       const stepState: StepState = {
         userGrid: newGrid,
         expectedGrid: this.state.expectedGrid,
@@ -105,12 +112,18 @@ export class MathSessionController<TConfig = any> {
       };
 
       const validation = this.engine.validate(stepState);
+      
+      console.log('Validation Result:', validation);
 
       if (validation.correct) {
         // Mark target cells as correct
         const correctGrid = newGrid.map((row, r) => row.map((cell, c) => {
              // Check if cell is part of current step target cells
              const isTarget = currentStep.targetCells.some(pos => pos.r === r && pos.c === c);
+             // For insert_parentheses, mark ALL non-empty algebra terms in row 1 as correct
+             if (currentStep.type === 'insert_parentheses' && r === 1 && cell.role === 'algebra_term' && cell.value) {
+                 return { ...cell, status: 'correct' as const };
+             }
              if (isTarget) {
                  return { ...cell, status: 'correct' as const };
              }
@@ -126,8 +139,29 @@ export class MathSessionController<TConfig = any> {
           hintSkillTag: undefined,
           errorType: null,
         });
+        console.log('State status after transition:', this.state.status);
       } else {
-        const highlights = validation.hints?.[0]?.highlightCells.map(pos => `${pos.r},${pos.c}`) || [];
+        let highlights = validation.hints?.[0]?.highlightCells.map(pos => `${pos.r},${pos.c}`) || [];
+        
+        // Fallback: If engine didn't provide highlights but we have an error, highlight the target cells
+        if (highlights.length === 0 && validation.errorType) {
+             highlights = currentStep.targetCells.map(pos => `${pos.r},${pos.c}`);
+        }
+
+        // Mark incorrect cells in the grid
+        const errorGrid = newGrid.map((row, r) => row.map((cell, c) => {
+            // Check if this cell is part of the error highlights OR is a target cell that is wrong
+            // For simplicity, if we are in error state, any filled target cell that isn't correct is potentially incorrect.
+            // But better: use the validation errors if available.
+            
+            const isErrorCell = validation.errors.some(e => e.position.r === r && e.position.c === c);
+            
+            if (isErrorCell) {
+                return { ...cell, status: 'incorrect' as const };
+            }
+            return cell;
+        }));
+
         const hintMessageKey = validation.hints?.[0]?.messageKey || 'hint_error';
         const hintMessage = validation.hints?.[0]?.message || null;
         const hintSeverity = validation.hints?.[0]?.severity || 'procedural';
@@ -135,7 +169,7 @@ export class MathSessionController<TConfig = any> {
         const errorType = validation.errorType;
 
         this.transition('error', {
-          grid: newGrid,
+          grid: errorGrid,
           highlights,
           hintMessageKey,
           hintMessage,
@@ -144,18 +178,6 @@ export class MathSessionController<TConfig = any> {
           errorType,
         });
       }
-    } else {
-      // Still solving, just updated the grid
-      this.transition('solving', {
-        grid: newGrid,
-        highlights: [],
-        hintMessageKey: null,
-        hintMessage: null,
-        hintSeverity: 'none',
-        hintSkillTag: undefined,
-        errorType: null,
-      });
-    }
   }
 
   public next(): void {

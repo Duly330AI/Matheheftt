@@ -113,11 +113,15 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
   const telemetry = useMemo(() => new TelemetryLogger(), []);
   const loadEngine = useMemo(() => new CognitiveLoadEngine(), []);
   
-  const { state, start, input, next, reset, undo, clearUserInputs } = useMathSession(engine);
+  const { state, start, input, next, reset, undo, clearUserInputs, check } = useMathSession(engine);
 
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [animation, setAnimation] = useState<AnimationInstruction | null>(null);
   const [taskProcessed, setTaskProcessed] = useState(false);
+
+  // Determine if current step is parentheses insertion
+  const currentStep = state.steps[state.currentStepIndex];
+  const isParenthesesTask = currentStep?.type === 'insert_parentheses';
 
   // Timer Logic for Time Attack and Exam Mode
   useEffect(() => {
@@ -426,6 +430,9 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           toStepIndex: state.currentStepIndex + 1 
         });
         next();
+      } else if (state.status === 'solving') {
+          // Trigger manual validation on Enter
+          check();
       }
     }
   };
@@ -509,7 +516,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
                     Beenden
                   </button>
               </div>
-            ) : state.status === 'correct' && (
+            ) : state.status === 'correct' ? (
               <button 
                 onClick={() => {
                   telemetry.log('step_transition', { 
@@ -522,7 +529,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
               >
                 Nächster Schritt
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

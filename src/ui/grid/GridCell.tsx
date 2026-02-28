@@ -48,7 +48,7 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
       roleClasses = "text-sm text-gray-400";
       break;
     case 'algebra_term':
-      roleClasses = "text-xl font-medium text-indigo-700";
+      roleClasses = "text-xl font-medium text-gray-900";
       break;
     default:
       break;
@@ -56,12 +56,12 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
 
   let statusClasses = "";
   if (status === 'correct') {
-    statusClasses = "bg-green-100 ring-2 ring-green-400 rounded-md z-10";
+    statusClasses = "text-green-600 font-bold bg-green-50 rounded-md z-10";
   } else if (status === 'incorrect') {
-    statusClasses = "bg-red-100 ring-2 ring-red-400 rounded-md z-10";
+    statusClasses = "text-red-600 font-bold bg-red-50 rounded-md z-10";
   }
 
-  const highlightClasses = highlight ? "bg-red-100 ring-2 ring-red-400 rounded-md z-10" : "";
+  const highlightClasses = highlight ? "bg-red-100 rounded-md z-10" : "";
   const activeClasses = isActive ? "bg-blue-50 ring-2 ring-blue-400 rounded-md z-10" : "";
   
   // Combine classes, status takes precedence over highlight/active if set
