@@ -107,8 +107,18 @@ export class MathSessionController<TConfig = any> {
       const validation = this.engine.validate(stepState);
 
       if (validation.correct) {
+        // Mark target cells as correct
+        const correctGrid = newGrid.map((row, r) => row.map((cell, c) => {
+             // Check if cell is part of current step target cells
+             const isTarget = currentStep.targetCells.some(pos => pos.r === r && pos.c === c);
+             if (isTarget) {
+                 return { ...cell, status: 'correct' as const };
+             }
+             return cell;
+        }));
+
         this.transition('correct', {
-          grid: newGrid,
+          grid: correctGrid,
           highlights: [],
           hintMessageKey: null,
           hintMessage: null,

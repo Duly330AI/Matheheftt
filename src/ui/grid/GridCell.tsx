@@ -11,7 +11,7 @@ export type GridCellProps = {
 };
 
 export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, style }: GridCellProps) => {
-  const { role, value, isEditable, id } = cell;
+  const { role, value, isEditable, id, status } = cell;
 
   if (role === 'empty') {
     return <div style={style} className="absolute pointer-events-none" />;
@@ -54,8 +54,18 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
       break;
   }
 
+  let statusClasses = "";
+  if (status === 'correct') {
+    statusClasses = "bg-green-100 ring-2 ring-green-400 rounded-md z-10";
+  } else if (status === 'incorrect') {
+    statusClasses = "bg-red-100 ring-2 ring-red-400 rounded-md z-10";
+  }
+
   const highlightClasses = highlight ? "bg-red-100 ring-2 ring-red-400 rounded-md z-10" : "";
   const activeClasses = isActive ? "bg-blue-50 ring-2 ring-blue-400 rounded-md z-10" : "";
+  
+  // Combine classes, status takes precedence over highlight/active if set
+  const finalClasses = `${baseClasses} ${roleClasses} ${statusClasses || highlightClasses || activeClasses}`;
 
   if (isEditable) {
     const isAlgebra = role === 'algebra_term';
@@ -82,7 +92,7 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
         }}
         onKeyDown={(e) => onKeyDown?.(e, id)}
         style={style}
-        className={`${baseClasses} ${roleClasses} ${highlightClasses} ${activeClasses} bg-transparent outline-none text-center caret-transparent cursor-default focus:bg-blue-100 focus:ring-2 focus:ring-blue-500 rounded-md z-20`}
+        className={`${finalClasses} bg-transparent outline-none text-center caret-transparent cursor-default focus:bg-blue-100 focus:ring-2 focus:ring-blue-500 rounded-md z-20`}
         aria-label={`${role} input`}
         autoComplete="off"
       />
@@ -93,7 +103,7 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
     <span
       id={`cell-${id}`}
       style={style}
-      className={`${baseClasses} ${roleClasses} ${highlightClasses} ${activeClasses}`}
+      className={finalClasses}
       aria-label={`${role} ${value}`}
     >
       {value}
