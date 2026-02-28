@@ -1,21 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import { TaskType, Difficulty, GameMode, Profile } from '../types';
-import { useProfiles } from '../hooks/useProfiles';
 import { Trophy, X, Filter, List, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface LeaderboardProps {
+  profiles: Profile[];
   onClose: () => void;
 }
 
-export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
-  const { profiles } = useProfiles();
-  const [filterType, setFilterType] = useState<TaskType>('mixed');
+export const Leaderboard: React.FC<LeaderboardProps> = ({ profiles, onClose }) => {
+  const [filterType, setFilterType] = useState<TaskType | 'overall'>('overall');
   const [filterDifficulty, setFilterDifficulty] = useState<Difficulty>('medium');
   const [filterMode, setFilterMode] = useState<GameMode>('classic');
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
 
   const categoryKey = useMemo(() => {
+    if (filterType === 'overall') return 'overall';
     let base = filterType;
     if (filterType === '1x1' && selectedTable) {
       base = `1x1-${selectedTable}`;
@@ -26,8 +26,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
   const leaderboardData = useMemo(() => {
     return profiles
       .map((p: Profile) => {
-        const scores = p.highscores[categoryKey] || [];
-        const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+        let bestScore = 0;
+        if (filterType === 'overall') {
+            bestScore = p.totalScore || 0;
+        } else {
+            const scores = p.highscores?.[categoryKey] || [];
+            bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+        }
         return {
           ...p,
           bestScore
@@ -35,7 +40,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
       })
       .filter((p: Profile & { bestScore: number }) => p.bestScore > 0)
       .sort((a: Profile & { bestScore: number }, b: Profile & { bestScore: number }) => b.bestScore - a.bestScore);
-  }, [profiles, categoryKey]);
+  }, [profiles, categoryKey, filterType]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm p-4">
@@ -55,6 +60,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
 
         {/* Filters */}
         <div className="p-6 bg-white border-b border-stone-100 space-y-4 shadow-sm z-10">
+            {filterType !== 'overall' && (
             <div className="flex flex-wrap gap-2">
                 {/* Game Mode */}
                 <div className="flex rounded-lg border border-stone-200 p-1 bg-stone-50">
@@ -109,9 +115,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
                     </button>
                 </div>
             </div>
+            )}
 
             {/* Task Type */}
             <div className="flex flex-wrap gap-2">
+                <button
+                    onClick={() => setFilterType('overall')}
+                    className={cn(
+                        "px-3 py-1.5 rounded-lg border text-sm font-medium transition-all",
+                        filterType === 'overall' 
+                            ? "bg-purple-50 border-purple-500 text-purple-700" 
+                            : "bg-white border-stone-200 text-stone-600 hover:border-purple-300"
+                    )}
+                >
+                    Gesamt
+                </button>
                 {(['mixed', '+', '-', '*', ':', '1x1'] as TaskType[]).map(type => (
                     <button
                         key={type}
@@ -190,7 +208,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onClose }) => {
                             <div className="flex-1">
                                 <div className="font-bold text-stone-800 text-lg">{entry.name}</div>
                                 <div className="text-xs text-stone-400 font-medium uppercase tracking-wider">
-                                    {filterMode === 'classic' ? 'Klassik' : 'Zeit-Attacke'} • {filterDifficulty === 'easy' ? 'Leicht' : filterDifficulty === 'medium' ? 'Mittel' : 'Schwer'}
+                                    {filterType === 'overall' 
+                                        ? 'Gesamtpunkte' 
+                                        : `${filterMode === 'classic' ? 'Klassik' : 'Zeit-Attacke'} • ${filterDifficulty === 'easy' ? 'Leicht' : filterDifficulty === 'medium' ? 'Mittel' : 'Schwer'}`
+                                    }
                                 </div>
                             </div>
                             

@@ -11,7 +11,13 @@ export function useProfiles() {
   useEffect(() => {
     const storedProfiles = localStorage.getItem(STORAGE_KEY);
     if (storedProfiles) {
-      setProfiles(JSON.parse(storedProfiles));
+      const parsed = JSON.parse(storedProfiles);
+      // Migration: Ensure history exists
+      const migrated = parsed.map((p: any) => ({
+        ...p,
+        history: p.history || []
+      }));
+      setProfiles(migrated);
     }
     const storedActiveId = localStorage.getItem(ACTIVE_PROFILE_KEY);
     if (storedActiveId) {
@@ -31,7 +37,8 @@ export function useProfiles() {
       avatar,
       totalScore: 0,
       scores: {},
-      highscores: {}
+      highscores: {},
+      history: []
     };
     const newProfiles = [...profiles, newProfile];
     saveProfiles(newProfiles);

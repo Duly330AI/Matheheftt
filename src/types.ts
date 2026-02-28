@@ -6,7 +6,7 @@ export interface CellData {
   isCarryValid?: boolean | null;
 }
 
-export type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1';
+export type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1' | 'algebra' | 'simplify_terms';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameMode = 'classic' | 'time_attack' | 'exam';
 
@@ -17,6 +17,15 @@ export interface Profile {
   totalScore: number;
   scores: Record<string, number>; // Detailed scores per category (e.g., 'mixed', '+', '1x1-7')
   highscores: Record<string, number[]>; // Highscores per category
+  history: {
+    date: number;
+    score: number;
+    mode: GameMode;
+    difficulty: Difficulty;
+  }[];
+  telemetryHistory?: any[]; // Stores telemetry events for analytics
+  cognitiveTimeline?: { timestamp: number; state: any }[];
+  plannerDecisions?: any[];
 }
 
 export interface TaskResult {
@@ -41,4 +50,7 @@ export interface SessionState {
   timeLimit?: number;
   remainingTime?: number;
   examReviewMode?: boolean;
+  telemetryEvents?: any[];
+  cognitiveTimeline?: { timestamp: number; state: any }[];
+  plannerDecisions?: any[];
 }

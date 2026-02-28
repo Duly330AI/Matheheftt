@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Profile } from '../types';
-import { User, Plus, Trophy, Cat, Dog, Bird, Fish, Rabbit, Turtle, Trash2, Pencil, X, Check } from 'lucide-react';
+import { User, Plus, Trophy, Cat, Dog, Bird, Fish, Rabbit, Turtle, Trash2, Pencil, X, Check, LineChart } from 'lucide-react';
 
 interface ProfileSelectorProps {
   profiles: Profile[];
@@ -9,6 +9,7 @@ interface ProfileSelectorProps {
   deleteProfile: (id: string) => void;
   updateProfile: (id: string, name: string, avatar: string) => void;
   onOpenLeaderboard: () => void;
+  onOpenDashboard: () => void;
 }
 
 const AVATARS = [
@@ -20,7 +21,7 @@ const AVATARS = [
   { id: 'turtle', icon: Turtle, label: 'Schildkröte' },
 ];
 
-export function ProfileSelector({ profiles, createProfile, selectProfile, deleteProfile, updateProfile, onOpenLeaderboard }: ProfileSelectorProps) {
+export function ProfileSelector({ profiles, createProfile, selectProfile, deleteProfile, updateProfile, onOpenLeaderboard, onOpenDashboard }: ProfileSelectorProps) {
   const [newProfileName, setNewProfileName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('cat');
   const [isCreating, setIsCreating] = useState(false);
@@ -91,6 +92,14 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
         >
             <Trophy size={24} />
             <span className="text-sm font-bold hidden sm:inline">Bestenliste</span>
+        </button>
+        <button 
+            onClick={onOpenDashboard}
+            className="absolute top-6 left-6 text-blue-500 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50 flex items-center gap-2"
+            title="Lehrer Dashboard"
+        >
+            <LineChart size={24} />
+            <span className="text-sm font-bold hidden sm:inline">Lehrer</span>
         </button>
 
         <div className="text-center mb-8">

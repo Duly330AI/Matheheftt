@@ -1,20 +1,55 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Matheheft Digital
 
-# Run and deploy your AI Studio app
+Ein digitales kariertes Mathematikheft für schriftliche Rechenverfahren wie Addition, Subtraktion und Multiplikation. Das System ist als hochmodulare, deterministische EdTech-Plattform konzipiert, die nicht nur Ergebnisse prüft, sondern den vollständigen Rechenweg pädagogisch begleitet.
 
-This contains everything you need to run your app locally.
+## Architektur & Features
 
-View your app in AI Studio: https://ai.studio/apps/7e171cca-20a0-4672-b58e-b74cfc6f1bd6
+Das System wurde nach strikten Software-Engineering-Prinzipien (Separation of Concerns) in 10 Phasen aufgebaut:
 
-## Run Locally
+1. **Math Engines:** Deterministische Berechnung von Rechenwegen (Addition, Subtraktion, Multiplikation).
+2. **Grid System:** Matrix-basierte Darstellung von Rechenkästchen.
+3. **Pedagogy Layer:** Intelligente Fehleranalyse (erkennt z.B. vergessene Überträge).
+4. **State Machine Controller:** Robuste Verwaltung des Session-Zustands.
+5. **Adaptive Task Generator:** Deterministische, Seed-basierte Aufgabengenerierung.
+6. **UX Flow Engine:** Intelligente Steuerung von Fokus, Auto-Advance und Animationen.
+7. **System Hardening & Observability:** Telemetrie, Replay-System und Performance-Monitoring.
 
-**Prerequisites:**  Node.js
+## Entwickler-Tools (Dev Mode)
 
+- **Diagnostic Overlay:** Drücke `CTRL + ALT + D`, um das Live-Diagnose-Tool zu öffnen. Es zeigt den aktuellen State, Seed, erwartete Werte und Validierungs-Ergebnisse.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Technologien
+
+- React 18+
+- TypeScript
+- Tailwind CSS
+- Vite
+- Framer Motion (Animationen)
+- Vitest (Headless Testing)
+
+## Lokale Installation
+
+**Voraussetzungen:** Node.js
+
+1. Repository klonen:
+   ```bash
+   git clone https://github.com/Duly330AI/Matheheftt.git
+   cd Matheheftt
+   ```
+
+2. Abhängigkeiten installieren:
+   ```bash
+   npm install
+   ```
+
+3. Tests ausführen:
+   ```bash
+   npm run test
+   ```
+
+4. Anwendung starten:
+   ```bash
+   npm run dev
+   ```
+
+Die Anwendung ist dann unter `http://localhost:3000` erreichbar.

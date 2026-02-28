@@ -1,0 +1,11 @@
+name: Filesystem MCP
+version: 1.0.0
+schema: v1
+
+mcpServers:
+  - name: filesystem
+    command: C:\Users\duly3\AppData\Roaming\npm\mcp-server-filesystem.cmd
+    args: []
+    env: {}
+
+
