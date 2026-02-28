@@ -68,7 +68,7 @@ export const SessionSummary: React.FC<SessionSummaryProps> = ({
             className="w-full py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium"
           >
             <RotateCcw size={20} />
-            Nochmal spielen ({taskType === 'mixed' ? 'Mix' : taskType})
+            Nochmal spielen ({taskType === 'mixed' ? 'Mix' : taskType === 'algebra' ? '(x)' : taskType === 'insert_parentheses' ? '( )' : taskType})
           </button>
           
           <button

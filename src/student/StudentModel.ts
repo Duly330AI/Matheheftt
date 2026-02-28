@@ -119,6 +119,11 @@ export class StudentModel {
     if (op === 'algebra') {
       return 'algebra_expand_brackets';
     }
+    
+    if (op === 'insert_parentheses') {
+      if (errorType === 'OPERATOR_MODIFICATION_ERROR') return 'algebra_parentheses_insertion';
+      return 'algebra_parentheses_insertion';
+    }
 
     // Fallback to legacy hint keys if errorType is actually a hint key
     switch (errorType) {
@@ -148,6 +153,7 @@ export class StudentModel {
     if (op === 'mul' || op === 'multiplication') return 'multiplication_basic';
     if (op === 'div' || op === 'division') return 'division_process';
     if (op === 'algebra') return 'algebra_expand_brackets';
+    if (op === 'insert_parentheses') return 'algebra_parentheses_insertion';
     
     return null;
   }

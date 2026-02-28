@@ -17,7 +17,9 @@ const skillTranslations: Record<string, string> = {
   'division_process': 'Divisions-Ablauf',
   'place_value': 'Stellenwert-Verständnis',
   'algebra_expand_brackets': 'Klammern auflösen',
-  'algebra_simplify_terms': 'Terme vereinfachen'
+  'algebra_simplify_terms': 'Terme vereinfachen',
+  'algebra_parentheses_insertion': 'Klammern setzen',
+  'algebra_order_of_operations': 'Vorrangregeln'
 };
 
 export const SkillRadar: React.FC<SkillRadarProps> = ({ skills }) => {

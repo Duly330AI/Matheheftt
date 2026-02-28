@@ -22,7 +22,9 @@ const taskTypeLabels: Record<string, string> = {
   '-': 'Subtraktion',
   '*': 'Multiplikation',
   ':': 'Division',
-  '1x1': 'Einmaleins'
+  '1x1': 'Einmaleins',
+  'algebra': 'Algebra',
+  'insert_parentheses': 'Klammern setzen'
 };
 
 const difficultyLabels: Record<string, string> = {

@@ -48,6 +48,7 @@ export type StepType =
   | 'divide_bring_down'
   | 'divide_remainder'
   | 'algebra_expand'
+  | 'insert_parentheses'
   | 'finished';
 
 export type Step = {
@@ -60,7 +61,7 @@ export type Step = {
   dependencies?: Position[]; // Cells needed for this step
 };
 
-export type OperationType = 'addition' | 'subtraction' | 'multiplication' | 'division' | 'algebra' | 'simplify_terms';
+export type OperationType = 'addition' | 'subtraction' | 'multiplication' | 'division' | 'algebra' | 'simplify_terms' | 'insert_parentheses';
 
 export type StepMeta = {
   difficulty: number;
@@ -88,6 +89,11 @@ export type ErrorType =
   | 'PARTIAL_SIMPLIFICATION'
   | 'SIGN_MISAPPLICATION'
   | 'VARIABLE_MISMATCH'
+  | 'ORDER_OF_OPERATIONS_ERROR'
+  | 'MISSING_PARENTHESES'
+  | 'REDUNDANT_PARENTHESES'
+  | 'INVALID_STRUCTURE'
+  | 'OPERATOR_MODIFICATION_ERROR'
   // Arithmetic
   | 'CARRY_ERROR'
   | 'BORROW_ERROR'

@@ -130,7 +130,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profiles, onClose }) =
                 >
                     Gesamt
                 </button>
-                {(['mixed', '+', '-', '*', ':', '1x1'] as TaskType[]).map(type => (
+                {(['mixed', '+', '-', '*', ':', '1x1', 'algebra', 'insert_parentheses'] as TaskType[]).map(type => (
                     <button
                         key={type}
                         onClick={() => {
@@ -144,7 +144,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ profiles, onClose }) =
                                 : "bg-white border-stone-200 text-stone-600 hover:border-blue-300"
                         )}
                     >
-                        {type === 'mixed' ? 'Mix' : type}
+                        {type === 'mixed' ? 'Mix' : type === 'algebra' ? '(x)' : type === 'insert_parentheses' ? '( )' : type}
                     </button>
                 ))}
             </div>

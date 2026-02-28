@@ -71,6 +71,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     if (taskType === '*') return 'multiplication';
     if (taskType === ':') return 'division';
     if (taskType === 'algebra') return 'algebra';
+    if (taskType === 'insert_parentheses') return 'insert_parentheses';
     return 'addition';
   });
 
@@ -83,6 +84,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     else if (taskType === '*') setCurrentOperation('multiplication');
     else if (taskType === ':') setCurrentOperation('division');
     else if (taskType === 'algebra') setCurrentOperation('algebra');
+    else if (taskType === 'insert_parentheses') setCurrentOperation('insert_parentheses');
   }, [taskType]);
   const [score, setScore] = useState(0);
   const [tasksCompleted, setTasksCompleted] = useState(0);
@@ -157,6 +159,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           { id: 'sub_medium', operation: 'sub', difficulty: { operation: 'sub', digits: 3, requireBorrow: true, allowNegative: false }, skillsTrained: ['subtraction_borrow'], estimatedTime: 25 },
           { id: 'mul_easy', operation: 'mul', difficulty: { operation: 'mul', digits: 2 }, skillsTrained: ['multiplication_basic'], estimatedTime: 20 },
           { id: 'div_easy', operation: 'div', difficulty: { operation: 'div', digits: 2, requireRemainder: false }, skillsTrained: ['division_process'], estimatedTime: 25 },
+          { id: 'insert_parentheses', operation: 'insert_parentheses', difficulty: { operation: 'insert_parentheses', digits: 1 }, skillsTrained: ['algebra_parentheses_insertion'], estimatedTime: 15 },
         ];
 
         const planned = planner.nextTask({
@@ -168,7 +171,9 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
         nextOp = planned.task.operation === 'add' ? 'addition' :
                  planned.task.operation === 'sub' ? 'subtraction' :
                  planned.task.operation === 'mul' ? 'multiplication' :
-                 planned.task.operation === 'div' ? 'division' : 'addition';
+                 planned.task.operation === 'div' ? 'division' :
+                 planned.task.operation === 'algebra' ? 'algebra' :
+                 planned.task.operation === 'insert_parentheses' ? 'insert_parentheses' : 'addition';
         
         // Use the difficulty from the planned task
         const plannedDifficulty = planned.task.id.includes('easy') ? 'easy' : 'medium';
@@ -186,6 +191,12 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
         }]);
     } else if (taskType === 'algebra') {
         nextOp = 'algebra';
+        if (nextOp !== currentOperation) {
+            setCurrentOperation(nextOp);
+            return;
+        }
+    } else if (taskType === 'insert_parentheses') {
+        nextOp = 'insert_parentheses';
         if (nextOp !== currentOperation) {
             setCurrentOperation(nextOp);
             return;
@@ -236,12 +247,18 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           digits: difficulty === 'easy' ? 2 : 3,
           requireRemainder: difficulty === 'hard'
         };
-      } else {
+      } else if (nextOp === 'algebra') {
         // Algebra
         profile = {
           operation: 'algebra',
           digits: 1,
           pedagogicFocus: 'expand'
+        };
+      } else {
+        // insert_parentheses
+        profile = {
+          operation: 'insert_parentheses',
+          digits: 1
         };
       }
 
@@ -261,6 +278,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
       else if (nextOp === 'multiplication' && config.multiplicand !== undefined) start({ multiplicand: config.multiplicand, multiplier: config.multiplier });
       else if (nextOp === 'division' && config.dividend !== undefined) start({ dividend: config.dividend, divisor: config.divisor });
       else if (nextOp === 'algebra') start(config);
+      else if (nextOp === 'insert_parentheses') start(config);
     });
   }, [currentOperation, seed, taskType, difficulty, studentModel, start, telemetry, selectedTable]);
 

@@ -6,7 +6,7 @@ export interface CellData {
   isCarryValid?: boolean | null;
 }
 
-export type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1' | 'algebra' | 'simplify_terms';
+export type TaskType = 'mixed' | '+' | '-' | '*' | ':' | '1x1' | 'algebra' | 'simplify_terms' | 'insert_parentheses';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameMode = 'classic' | 'time_attack' | 'exam';
 
