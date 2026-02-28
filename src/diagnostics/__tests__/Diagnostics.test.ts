@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EngineValidator } from '../EngineValidator';
+import { EngineValidator } from '../../test-utils/EngineValidator';
 import { MathEngine, StepResult, Step, GridMatrix, StepState, ValidationResult } from '../../engine/types';
 import { PerformanceMonitor } from '../PerformanceMonitor';
 

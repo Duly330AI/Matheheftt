@@ -5,6 +5,17 @@ export interface ReplayController {
   next(): void;
 }
 
+/**
+ * WIP: Teacher Feature / DevTool
+ * 
+ * SessionReplay allows deterministic playback of a student's session.
+ * This is strategically valuable for:
+ * - Teacher Mode (reviewing student mistakes step-by-step)
+ * - Diagnostic evaluation
+ * - UX Testing
+ * 
+ * Currently not exposed in the main UI, but kept as a core capability.
+ */
 export class SessionReplay {
   public static async replay(events: TelemetryEvent[], controller: ReplayController, delayMs: number = 100): Promise<void> {
     for (const event of events) {
