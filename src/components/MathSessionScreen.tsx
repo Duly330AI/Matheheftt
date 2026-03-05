@@ -124,6 +124,14 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
   const isParenthesesTask = currentStep?.type === 'insert_parentheses';
 
   // Timer Logic for Time Attack and Exam Mode
+  const cognitiveTimelineRef = React.useRef(cognitiveTimeline);
+  const plannerDecisionsRef = React.useRef(plannerDecisions);
+
+  useEffect(() => {
+    cognitiveTimelineRef.current = cognitiveTimeline;
+    plannerDecisionsRef.current = plannerDecisions;
+  }, [cognitiveTimeline, plannerDecisions]);
+
   useEffect(() => {
     if (timeLimit && (gameMode === 'time_attack' || gameMode === 'exam')) {
       const interval = setInterval(() => {
@@ -140,8 +148,8 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
             gameMode,
             currentTaskIndex: tasksCompleted,
             telemetryEvents: allSessionEventsRef.current,
-            cognitiveTimeline,
-            plannerDecisions
+            cognitiveTimeline: cognitiveTimelineRef.current,
+            plannerDecisions: plannerDecisionsRef.current
           });
         }
       }, 1000);

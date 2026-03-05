@@ -119,6 +119,7 @@ function App() {
     if (activeProfile?.id === id) {
       setActiveProfile(null);
     }
+    localStorage.removeItem(`mathTrainer.studentModel.${id}`);
   };
 
   const handleUpdateProfile = (id: string, name: string, avatar: string) => {
@@ -158,11 +159,25 @@ function App() {
         mode: sessionConfig.gameMode,
         difficulty: sessionConfig.difficulty
       }];
+      if (updatedProfile.history.length > 100) {
+        updatedProfile.history = updatedProfile.history.slice(-100);
+      }
 
       // Update analytics data
       updatedProfile.telemetryHistory = [...(updatedProfile.telemetryHistory || []), ...(state.telemetryEvents || [])];
+      if (updatedProfile.telemetryHistory.length > 1000) {
+        updatedProfile.telemetryHistory = updatedProfile.telemetryHistory.slice(-1000);
+      }
+      
       updatedProfile.cognitiveTimeline = [...(updatedProfile.cognitiveTimeline || []), ...(state.cognitiveTimeline || [])];
+      if (updatedProfile.cognitiveTimeline.length > 1000) {
+        updatedProfile.cognitiveTimeline = updatedProfile.cognitiveTimeline.slice(-1000);
+      }
+
       updatedProfile.plannerDecisions = [...(updatedProfile.plannerDecisions || []), ...(state.plannerDecisions || [])];
+      if (updatedProfile.plannerDecisions.length > 500) {
+        updatedProfile.plannerDecisions = updatedProfile.plannerDecisions.slice(-500);
+      }
 
       // Ensure no undefined values
       updatedProfile.telemetryHistory = updatedProfile.telemetryHistory.filter(Boolean);

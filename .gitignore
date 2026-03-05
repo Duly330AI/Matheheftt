@@ -7,5 +7,4 @@ coverage/
 .env*
 !.env.example
 .continue/
-package-lock.json
 servers/

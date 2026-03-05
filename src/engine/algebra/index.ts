@@ -12,14 +12,6 @@ export const AlgebraPlugin: EnginePlugin<AlgebraConfig> = {
       domain: 'algebra',
       description: 'Distributivgesetz anwenden: a(b+c) = ab+ac',
       decayHalfLife: 45,
-    },
-    {
-      id: 'algebra_simplify_terms',
-      name: 'Terme vereinfachen',
-      domain: 'algebra',
-      description: 'Gleichartige Terme zusammenfassen',
-      dependsOn: ['algebra_expand_brackets'],
-      decayHalfLife: 45,
     }
   ],
   getDifficultySchema: () => ({

@@ -94,6 +94,22 @@ export class StudentModel {
 
     const op = operation.toLowerCase();
     
+    // Check legacy hint keys first
+    switch (errorType) {
+      case 'hint_carry_error': return 'addition_carry';
+      case 'hint_borrow_error': return 'subtraction_borrow';
+      case 'hint_algebra_error':
+      case 'hint_algebra_expand_error': return 'algebra_expand_brackets';
+      case 'division_estimate_too_large':
+      case 'division_estimate_too_small': return 'division_estimation';
+      case 'subtract_error': return 'division_subtract';
+      case 'forgot_bring_down': return 'division_process';
+      case 'multiply_error':
+      case 'hint_multiply_digit_error': return 'multiplication_basic';
+      case 'hint_add_column_error': return 'addition_no_carry';
+      case 'hint_subtract_column_error': return 'subtraction_no_borrow';
+    }
+
     // Map specific error types to skills based on operation
     if (op === 'add' || op === 'addition') {
       if (errorType === 'CARRY_ERROR') return 'addition_carry';
@@ -125,22 +141,7 @@ export class StudentModel {
       return 'algebra_parentheses_insertion';
     }
 
-    // Fallback to legacy hint keys if errorType is actually a hint key
-    switch (errorType) {
-      case 'hint_carry_error': return 'addition_carry';
-      case 'hint_borrow_error': return 'subtraction_borrow';
-      case 'hint_algebra_error':
-      case 'hint_algebra_expand_error': return 'algebra_expand_brackets';
-      case 'division_estimate_too_large':
-      case 'division_estimate_too_small': return 'division_estimation';
-      case 'subtract_error': return 'division_subtract';
-      case 'forgot_bring_down': return 'division_process';
-      case 'multiply_error':
-      case 'hint_multiply_digit_error': return 'multiplication_basic';
-      case 'hint_add_column_error': return 'addition_no_carry';
-      case 'hint_subtract_column_error': return 'subtraction_no_borrow';
-      default: return this.mapOperationToMainSkill(operation);
-    }
+    return this.mapOperationToMainSkill(operation);
   }
 
   private mapOperationToMainSkill(operation: string | null): string | null {

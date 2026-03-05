@@ -95,6 +95,7 @@ export type ErrorType =
   | 'INVALID_STRUCTURE'
   | 'OPERATOR_MODIFICATION_ERROR'
   | 'OPERATOR_REORDER_ERROR'
+  | 'INVALID_INPUT'
   // Arithmetic
   | 'CARRY_ERROR'
   | 'BORROW_ERROR'
@@ -125,6 +126,7 @@ export type ValidationResult = {
   errorType: ErrorType | null;
   errors: CellError[];
   hints?: Hint[];
+  correctCells?: Position[];
 };
 
 export type StepState = {

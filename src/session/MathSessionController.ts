@@ -30,6 +30,9 @@ export class MathSessionController<TConfig = any> {
       state: JSON.parse(JSON.stringify(this.state)), // Deep copy for immutability
       timestamp: Date.now(),
     });
+    if (this.history.length > 50) {
+      this.history.shift();
+    }
   }
 
   private transition(newStatus: MathSessionStatus, updates: Partial<MathSessionState> = {}) {
@@ -148,35 +151,52 @@ export class MathSessionController<TConfig = any> {
              highlights = currentStep.targetCells.map(pos => `${pos.r},${pos.c}`);
         }
 
-        // Mark incorrect cells in the grid
-        const errorGrid = newGrid.map((row, r) => row.map((cell, c) => {
-            // Check if this cell is part of the error highlights OR is a target cell that is wrong
-            // For simplicity, if we are in error state, any filled target cell that isn't correct is potentially incorrect.
-            // But better: use the validation errors if available.
-            
+        // Mark incorrect and partially correct cells in the grid
+        const newGridWithStatus = newGrid.map((row, r) => row.map((cell, c) => {
             const isErrorCell = validation.errors.some(e => e.position.r === r && e.position.c === c);
+            const isCorrectCell = validation.correctCells?.some(p => p.r === r && p.c === c);
             
             if (isErrorCell) {
                 return { ...cell, status: 'incorrect' as const };
+            } else if (isCorrectCell) {
+                return { ...cell, status: 'correct' as const };
+            } else if (cell.isEditable) {
+                // Reset status for editable cells that are neither correct nor error
+                return { ...cell, status: undefined };
             }
             return cell;
         }));
 
-        const hintMessageKey = validation.hints?.[0]?.messageKey || 'hint_error';
-        const hintMessage = validation.hints?.[0]?.message || null;
-        const hintSeverity = validation.hints?.[0]?.severity || 'procedural';
-        const hintSkillTag = validation.hints?.[0]?.skillTag;
-        const errorType = validation.errorType;
+        const hasErrors = validation.errors.length > 0 || validation.errorType !== null;
 
-        this.transition('error', {
-          grid: errorGrid,
-          highlights,
-          hintMessageKey,
-          hintMessage,
-          hintSeverity,
-          hintSkillTag,
-          errorType,
-        });
+        if (hasErrors) {
+          const hintMessageKey = validation.hints?.[0]?.messageKey || 'hint_error';
+          const hintMessage = validation.hints?.[0]?.message || null;
+          const hintSeverity = validation.hints?.[0]?.severity || 'procedural';
+          const hintSkillTag = validation.hints?.[0]?.skillTag;
+          const errorType = validation.errorType;
+
+          this.transition('error', {
+            grid: newGridWithStatus,
+            highlights,
+            hintMessageKey,
+            hintMessage,
+            hintSeverity,
+            hintSkillTag,
+            errorType,
+          });
+        } else {
+          // No errors, but not fully correct yet (e.g., valid prefix). Stay in solving.
+          this.transition('solving', {
+            grid: newGridWithStatus,
+            highlights: [],
+            hintMessageKey: null,
+            hintMessage: null,
+            hintSeverity: 'none',
+            hintSkillTag: undefined,
+            errorType: null,
+          });
+        }
       }
   }
 

@@ -17,7 +17,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart, onBack, onOpe
   const [timeLimit, setTimeLimit] = useState<number>(180); // 3 minutes default
 
   const handleStart = () => {
-    onStart(taskType, selectedTable, difficulty, gameMode, gameMode === 'time_attack' ? timeLimit : undefined);
+    onStart(taskType, selectedTable, difficulty, gameMode, (gameMode === 'time_attack' || gameMode === 'exam') ? timeLimit : undefined);
   };
 
   return (
