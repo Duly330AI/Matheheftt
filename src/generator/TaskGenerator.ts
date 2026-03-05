@@ -6,6 +6,7 @@ import { MultiplicationStrategy } from './strategies/multiplication.strategy';
 import { DivisionStrategy } from './strategies/division.strategy';
 import { AlgebraStrategy } from './strategies/algebra.strategy';
 import { ParenthesesInsertionStrategy } from './strategies/parenthesesInsertion.strategy';
+import { ParenthesesEvaluationStrategy } from './strategies/parenthesesEvaluation.strategy';
 import { StudentModel } from '../student/StudentModel';
 
 export interface GenerationStrategy {
@@ -26,6 +27,7 @@ export class TaskGenerator {
       div: new DivisionStrategy(),
       algebra: new AlgebraStrategy(),
       insert_parentheses: new ParenthesesInsertionStrategy(),
+      parentheses_evaluation: new ParenthesesEvaluationStrategy(),
     };
   }
 

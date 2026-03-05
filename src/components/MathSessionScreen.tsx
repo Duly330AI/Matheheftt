@@ -47,6 +47,8 @@ const t = (key: string | null): string | null => {
     'hint_algebra_expand_error': 'Beim Auflösen der Klammer ist ein Fehler passiert. Multipliziere den Faktor vor der Klammer mit jedem Term in der Klammer.',
     'algebra_expand_explanation_1': 'Multipliziere den Faktor mit dem ersten Term in der Klammer.',
     'algebra_expand_explanation_2': 'Multipliziere den Faktor mit dem zweiten Term in der Klammer.',
+    'hint_wrong_parentheses_result': 'Das Ergebnis der Klammer ist falsch.',
+    'hint_wrong_substitute': 'Der eingesetzte Wert oder das Rechenzeichen ist falsch.',
   };
   return translations[key] || key;
 };
@@ -72,6 +74,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     if (taskType === ':') return 'division';
     if (taskType === 'algebra') return 'algebra';
     if (taskType === 'insert_parentheses') return 'insert_parentheses';
+    if (taskType === 'parentheses_evaluation') return 'parentheses_evaluation';
     return 'addition';
   });
 
@@ -85,6 +88,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     else if (taskType === ':') setCurrentOperation('division');
     else if (taskType === 'algebra') setCurrentOperation('algebra');
     else if (taskType === 'insert_parentheses') setCurrentOperation('insert_parentheses');
+    else if (taskType === 'parentheses_evaluation') setCurrentOperation('parentheses_evaluation');
   }, [taskType]);
   const [score, setScore] = useState(0);
   const [tasksCompleted, setTasksCompleted] = useState(0);
@@ -172,6 +176,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           { id: 'mul_easy', operation: 'mul', difficulty: { operation: 'mul', digits: 2 }, skillsTrained: ['multiplication_basic'], estimatedTime: 20 },
           { id: 'div_easy', operation: 'div', difficulty: { operation: 'div', digits: 2, requireRemainder: false }, skillsTrained: ['division_process'], estimatedTime: 25 },
           { id: 'insert_parentheses', operation: 'insert_parentheses', difficulty: { operation: 'insert_parentheses', digits: 1 }, skillsTrained: ['algebra_parentheses_insertion'], estimatedTime: 15 },
+          { id: 'parentheses_evaluation', operation: 'parentheses_evaluation', difficulty: { operation: 'parentheses_evaluation', digits: 2 }, skillsTrained: ['algebra_parentheses_evaluation'], estimatedTime: 25 },
         ];
 
         const planned = planner.nextTask({
@@ -185,7 +190,8 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
                  planned.task.operation === 'mul' ? 'multiplication' :
                  planned.task.operation === 'div' ? 'division' :
                  planned.task.operation === 'algebra' ? 'algebra' :
-                 planned.task.operation === 'insert_parentheses' ? 'insert_parentheses' : 'addition';
+                 planned.task.operation === 'insert_parentheses' ? 'insert_parentheses' :
+                 planned.task.operation === 'parentheses_evaluation' ? 'parentheses_evaluation' : 'addition';
         
         // Use the difficulty from the planned task
         const plannedDifficulty = planned.task.id.includes('easy') ? 'easy' : 'medium';
@@ -209,6 +215,12 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
         }
     } else if (taskType === 'insert_parentheses') {
         nextOp = 'insert_parentheses';
+        if (nextOp !== currentOperation) {
+            setCurrentOperation(nextOp);
+            return;
+        }
+    } else if (taskType === 'parentheses_evaluation') {
+        nextOp = 'parentheses_evaluation';
         if (nextOp !== currentOperation) {
             setCurrentOperation(nextOp);
             return;
@@ -266,11 +278,17 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           digits: 1,
           pedagogicFocus: 'expand'
         };
-      } else {
+      } else if (nextOp === 'insert_parentheses') {
         // insert_parentheses
         profile = {
           operation: 'insert_parentheses',
           digits: 1
+        };
+      } else {
+        // parentheses_evaluation
+        profile = {
+          operation: 'parentheses_evaluation',
+          digits
         };
       }
 
@@ -291,6 +309,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
       else if (nextOp === 'division' && config.dividend !== undefined) start({ dividend: config.dividend, divisor: config.divisor });
       else if (nextOp === 'algebra') start(config);
       else if (nextOp === 'insert_parentheses') start(config);
+      else if (nextOp === 'parentheses_evaluation') start(config);
     });
   }, [currentOperation, seed, taskType, difficulty, studentModel, start, telemetry, selectedTable]);
 

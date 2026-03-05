@@ -5,6 +5,7 @@ import { MultiplicationPlugin } from './MultiplicationEngine';
 import { DivisionPlugin } from './DivisionEngine';
 import { AlgebraPlugin } from './algebra';
 import { ParenthesesInsertionPlugin } from './algebra/ParenthesesInsertionPlugin';
+import { ParenthesesEvaluationPlugin } from './algebra/ParenthesesEvaluationPlugin';
 
 const registry = EngineRegistry.getInstance();
 
@@ -14,6 +15,7 @@ registry.register(MultiplicationPlugin);
 registry.register(DivisionPlugin);
 registry.register(AlgebraPlugin);
 registry.register(ParenthesesInsertionPlugin);
+registry.register(ParenthesesEvaluationPlugin);
 
 export { registry as engineRegistry };
 export * from './registry';

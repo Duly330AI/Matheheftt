@@ -1,4 +1,4 @@
-export type OperationType = 'add' | 'sub' | 'mul' | 'div' | 'algebra' | 'insert_parentheses';
+export type OperationType = 'add' | 'sub' | 'mul' | 'div' | 'algebra' | 'insert_parentheses' | 'parentheses_evaluation';
 
 export type DifficultyProfile = {
   operation: OperationType;
@@ -35,6 +35,12 @@ export interface ProblemConfig {
   expression?: string;
   targetResult?: number;
   solution?: string;
+  // Parentheses Evaluation
+  a?: number;
+  b?: number;
+  c?: number;
+  outerOp?: '+' | '-';
+  innerOp?: '+' | '-';
 }
 
 export interface GenerationStrategy {

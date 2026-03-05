@@ -93,6 +93,18 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart, onBack, onOpe
           >
             ( )
           </button>
+          <button
+             onClick={() => setTaskType('parentheses_evaluation')}
+             className={cn(
+               "px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all",
+               taskType === 'parentheses_evaluation'
+                 ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
+                 : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
+             )}
+             title="Klammern ausrechnen"
+          >
+            a ± (b ± c)
+          </button>
         </div>
 
         {taskType === '1x1' && (

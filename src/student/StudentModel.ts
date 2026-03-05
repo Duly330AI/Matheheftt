@@ -140,6 +140,11 @@ export class StudentModel {
       if (errorType === 'OPERATOR_MODIFICATION_ERROR') return 'algebra_parentheses_insertion';
       return 'algebra_parentheses_insertion';
     }
+    
+    if (op === 'parentheses_evaluation') {
+      if (errorType === 'WRONG_PARENTHESES_RESULT') return 'algebra_parentheses_evaluation';
+      return 'algebra_parentheses_evaluation';
+    }
 
     return this.mapOperationToMainSkill(operation);
   }
@@ -155,6 +160,7 @@ export class StudentModel {
     if (op === 'div' || op === 'division') return 'division_process';
     if (op === 'algebra') return 'algebra_expand_brackets';
     if (op === 'insert_parentheses') return 'algebra_parentheses_insertion';
+    if (op === 'parentheses_evaluation') return 'algebra_parentheses_evaluation';
     
     return null;
   }
