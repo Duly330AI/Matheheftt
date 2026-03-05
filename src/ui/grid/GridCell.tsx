@@ -69,11 +69,12 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
 
   if (isEditable) {
     const isAlgebra = role === 'algebra_term';
+    const isOperator = role === 'operator';
     return (
       <input
         id={`cell-${id}`}
         type="text"
-        inputMode={isAlgebra ? "text" : "numeric"}
+        inputMode={isAlgebra || isOperator ? "text" : "numeric"}
         maxLength={1}
         value={value}
         onChange={(e) => {
@@ -82,6 +83,11 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
              // Allow alphanumeric and basic math symbols
              if (val === '' || /^[a-zA-Z0-9+\-*()]$/.test(val)) {
                 onChange?.(id, val);
+             }
+          } else if (isOperator) {
+             // Allow + and -
+             if (val === '' || /^[+\-]$/.test(val)) {
+               onChange?.(id, val);
              }
           } else {
              // Only allow digits or empty

@@ -136,6 +136,9 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
       }
     }
 
+    const outerSetupTargetCells: Position[] = [];
+    const outerSetupExpectedValues: string[] = [];
+
     // Shift and pad subGrid
     const shiftedSubGrid: GridMatrix = subGrid.map((row, rIdx) => {
       const newRow = [];
@@ -147,16 +150,40 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
           newRow.push(this.createEmptyCell(rIdx + rowOffset, c));
         } else {
           const oldCell = row[c - colOffset];
-          newRow.push({
+          const newCell = {
             ...oldCell,
             id: `${rIdx + rowOffset},${c}`,
-          });
+          };
+          
+          // Hide operands in rows 0 and 1 of subGrid to prevent spoilers
+          if ((rIdx === 0 || rIdx === 1) && newCell.value !== '' && newCell.role !== 'empty' && newCell.role !== 'separator') {
+            outerSetupTargetCells.push({ r: rIdx + rowOffset, c });
+            outerSetupExpectedValues.push(newCell.value);
+            newCell.expectedValue = newCell.value;
+            newCell.value = '';
+            newCell.isEditable = true;
+          }
+          
+          newRow.push(newCell);
         }
       }
       return newRow;
     });
 
     const finalGrid = [...topGrid, ...shiftedSubGrid];
+
+    // Create outer setup step
+    if (outerSetupTargetCells.length > 0) {
+      steps.push({
+        id: 'step_outer_setup',
+        type: 'parentheses_outer_setup' as any,
+        targetCells: outerSetupTargetCells,
+        expectedValues: outerSetupExpectedValues,
+        explanationKey: 'parentheses_outer_setup_explanation',
+        nextFocus: outerSetupTargetCells[0] || null,
+        dependencies: step2TargetCells,
+      });
+    }
 
     // Shift steps
     const shiftedSubSteps: Step[] = subResult.steps.map(step => {
@@ -170,10 +197,20 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
     });
 
     // Update nextFocus of step 2
-    if (shiftedSubSteps.length > 0 && shiftedSubSteps[0].targetCells.length > 0) {
+    if (outerSetupTargetCells.length > 0) {
+      steps[1].nextFocus = outerSetupTargetCells[0];
+    } else if (shiftedSubSteps.length > 0 && shiftedSubSteps[0].targetCells.length > 0) {
       steps[1].nextFocus = shiftedSubSteps[0].targetCells[0];
     } else {
       steps[1].nextFocus = null;
+    }
+
+    // Update nextFocus of outer setup step
+    if (outerSetupTargetCells.length > 0) {
+      const setupStep = steps.find(s => s.id === 'step_outer_setup');
+      if (setupStep && shiftedSubSteps.length > 0 && shiftedSubSteps[0].targetCells.length > 0) {
+        setupStep.nextFocus = shiftedSubSteps[0].targetCells[0];
+      }
     }
 
     steps.push(...shiftedSubSteps);
@@ -203,7 +240,7 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
     const correctCells: Position[] = [];
 
     // For step 1 and 2, we need prefix-/incomplete-tolerant validation
-    if (currentStep.type === 'parentheses_inner_result' || currentStep.type === 'parentheses_substitute') {
+    if (currentStep.type === 'parentheses_inner_result' || currentStep.type === 'parentheses_substitute' || currentStep.type === 'parentheses_outer_setup' as any) {
       let isFullyCorrect = true;
       let hasErrors = false;
 
