@@ -18,6 +18,39 @@ describe('ParenthesesEvaluationEngine', () => {
     expect(step2.expectedValues.join('')).toBe('10+');
   });
 
+  it('generates correct grid and steps for + and -', () => {
+    const engine = new ParenthesesEvaluationEngine();
+    const result = engine.generate({ a: 10, b: 30, c: 20, outerOp: '+', innerOp: '-' });
+
+    expect(result.type).toBe('parentheses_evaluation');
+    const step1 = result.steps[0];
+    expect(step1.expectedValues.join('')).toBe('10');
+    const step2 = result.steps[1];
+    expect(step2.expectedValues.join('')).toBe('10+');
+  });
+
+  it('generates correct grid and steps for - and +', () => {
+    const engine = new ParenthesesEvaluationEngine();
+    const result = engine.generate({ a: 50, b: 20, c: 10, outerOp: '-', innerOp: '+' });
+
+    expect(result.type).toBe('parentheses_evaluation');
+    const step1 = result.steps[0];
+    expect(step1.expectedValues.join('')).toBe('30');
+    const step2 = result.steps[1];
+    expect(step2.expectedValues.join('')).toBe('50-');
+  });
+
+  it('generates correct grid and steps for - and -', () => {
+    const engine = new ParenthesesEvaluationEngine();
+    const result = engine.generate({ a: 50, b: 30, c: 20, outerOp: '-', innerOp: '-' });
+
+    expect(result.type).toBe('parentheses_evaluation');
+    const step1 = result.steps[0];
+    expect(step1.expectedValues.join('')).toBe('10');
+    const step2 = result.steps[1];
+    expect(step2.expectedValues.join('')).toBe('50-');
+  });
+
   it('validates partial input for parentheses_inner_result correctly', () => {
     const engine = new ParenthesesEvaluationEngine();
     const result = engine.generate({ a: 10, b: 20, c: 30, outerOp: '+', innerOp: '+' });

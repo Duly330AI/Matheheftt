@@ -49,6 +49,7 @@ const t = (key: string | null): string | null => {
     'algebra_expand_explanation_2': 'Multipliziere den Faktor mit dem zweiten Term in der Klammer.',
     'hint_wrong_parentheses_result': 'Das Ergebnis der Klammer ist falsch.',
     'hint_wrong_substitute': 'Der eingesetzte Wert oder das Rechenzeichen ist falsch.',
+    'hint_calculation_error': 'Das stimmt noch nicht ganz.',
   };
   return translations[key] || key;
 };

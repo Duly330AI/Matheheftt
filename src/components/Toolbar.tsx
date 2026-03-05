@@ -24,7 +24,8 @@ const taskTypeLabels: Record<string, string> = {
   ':': 'Division',
   '1x1': 'Einmaleins',
   'algebra': 'Algebra',
-  'insert_parentheses': 'Klammern setzen'
+  'insert_parentheses': 'Klammern setzen',
+  'parentheses_evaluation': 'Klammern ausrechnen'
 };
 
 const difficultyLabels: Record<string, string> = {

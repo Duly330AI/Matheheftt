@@ -59,7 +59,8 @@ export class LearningPathPlanner {
           'BORROW_ERROR': 'subtraction_borrow',
           'ESTIMATION_ERROR': 'division_estimation',
           'FORGOT_BRING_DOWN': 'division_process',
-          'ORDER_OF_OPERATIONS_ERROR': 'algebra_parentheses_insertion'
+          'ORDER_OF_OPERATIONS_ERROR': 'algebra_parentheses_insertion',
+          'WRONG_PARENTHESES_RESULT': 'algebra_parentheses_evaluation'
         };
         
         const targetSkill = errorSkillMap[errorType];
