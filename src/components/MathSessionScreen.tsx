@@ -50,6 +50,8 @@ const t = (key: string | null): string | null => {
     'hint_wrong_parentheses_result': 'Das Ergebnis der Klammer ist falsch.',
     'hint_wrong_substitute': 'Der eingesetzte Wert oder das Rechenzeichen ist falsch.',
     'hint_calculation_error': 'Das stimmt noch nicht ganz.',
+    'parentheses_inner_setup_explanation': 'Schreibe die innere Rechnung auf.',
+    'parentheses_outer_setup_explanation': 'Schreibe die äußere Rechnung auf.',
   };
   return translations[key] || key;
 };

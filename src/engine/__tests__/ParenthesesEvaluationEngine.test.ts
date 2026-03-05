@@ -7,15 +7,15 @@ describe('ParenthesesEvaluationEngine', () => {
     const result = engine.generate({ a: 10, b: 20, c: 30, outerOp: '+', innerOp: '+' });
 
     expect(result.type).toBe('parentheses_evaluation');
-    expect(result.steps.length).toBeGreaterThan(2); // 2 initial + sub-engine steps
+    expect(result.steps.length).toBeGreaterThan(2);
     
-    const step1 = result.steps[0];
-    expect(step1.type).toBe('parentheses_inner_result');
-    expect(step1.expectedValues.join('')).toBe('50');
+    const stepInnerResult = result.steps.find(s => s.type === 'parentheses_inner_result');
+    expect(stepInnerResult).toBeDefined();
+    expect(stepInnerResult!.expectedValues.join('')).toBe('50');
     
-    const step2 = result.steps[1];
-    expect(step2.type).toBe('parentheses_substitute');
-    expect(step2.expectedValues.join('')).toBe('10+');
+    const stepSubstitute = result.steps.find(s => s.type === 'parentheses_substitute');
+    expect(stepSubstitute).toBeDefined();
+    expect(stepSubstitute!.expectedValues.join('')).toBe('10+');
   });
 
   it('generates correct grid and steps for + and -', () => {
@@ -23,10 +23,10 @@ describe('ParenthesesEvaluationEngine', () => {
     const result = engine.generate({ a: 10, b: 30, c: 20, outerOp: '+', innerOp: '-' });
 
     expect(result.type).toBe('parentheses_evaluation');
-    const step1 = result.steps[0];
-    expect(step1.expectedValues.join('')).toBe('10');
-    const step2 = result.steps[1];
-    expect(step2.expectedValues.join('')).toBe('10+');
+    const stepInnerResult = result.steps.find(s => s.type === 'parentheses_inner_result');
+    expect(stepInnerResult!.expectedValues.join('')).toBe('10');
+    const stepSubstitute = result.steps.find(s => s.type === 'parentheses_substitute');
+    expect(stepSubstitute!.expectedValues.join('')).toBe('10+');
   });
 
   it('generates correct grid and steps for - and +', () => {
@@ -34,10 +34,10 @@ describe('ParenthesesEvaluationEngine', () => {
     const result = engine.generate({ a: 50, b: 20, c: 10, outerOp: '-', innerOp: '+' });
 
     expect(result.type).toBe('parentheses_evaluation');
-    const step1 = result.steps[0];
-    expect(step1.expectedValues.join('')).toBe('30');
-    const step2 = result.steps[1];
-    expect(step2.expectedValues.join('')).toBe('50-');
+    const stepInnerResult = result.steps.find(s => s.type === 'parentheses_inner_result');
+    expect(stepInnerResult!.expectedValues.join('')).toBe('30');
+    const stepSubstitute = result.steps.find(s => s.type === 'parentheses_substitute');
+    expect(stepSubstitute!.expectedValues.join('')).toBe('50-');
   });
 
   it('generates correct grid and steps for - and -', () => {
@@ -45,17 +45,17 @@ describe('ParenthesesEvaluationEngine', () => {
     const result = engine.generate({ a: 50, b: 30, c: 20, outerOp: '-', innerOp: '-' });
 
     expect(result.type).toBe('parentheses_evaluation');
-    const step1 = result.steps[0];
-    expect(step1.expectedValues.join('')).toBe('10');
-    const step2 = result.steps[1];
-    expect(step2.expectedValues.join('')).toBe('50-');
+    const stepInnerResult = result.steps.find(s => s.type === 'parentheses_inner_result');
+    expect(stepInnerResult!.expectedValues.join('')).toBe('10');
+    const stepSubstitute = result.steps.find(s => s.type === 'parentheses_substitute');
+    expect(stepSubstitute!.expectedValues.join('')).toBe('50-');
   });
 
   it('validates partial input for parentheses_inner_result correctly', () => {
     const engine = new ParenthesesEvaluationEngine();
     const result = engine.generate({ a: 10, b: 20, c: 30, outerOp: '+', innerOp: '+' });
     
-    const step1 = result.steps[0];
+    const step1 = result.steps.find(s => s.type === 'parentheses_inner_result')!;
     
     // Create a mock user grid
     const userGrid = result.grid.map(row => row.map(cell => ({ ...cell })));
@@ -80,7 +80,7 @@ describe('ParenthesesEvaluationEngine', () => {
     const engine = new ParenthesesEvaluationEngine();
     const result = engine.generate({ a: 10, b: 20, c: 30, outerOp: '+', innerOp: '+' });
     
-    const step1 = result.steps[0];
+    const step1 = result.steps.find(s => s.type === 'parentheses_inner_result')!;
     
     // Create a mock user grid
     const userGrid = result.grid.map(row => row.map(cell => ({ ...cell })));

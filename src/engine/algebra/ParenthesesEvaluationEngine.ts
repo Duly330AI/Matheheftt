@@ -91,44 +91,38 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
     step2TargetCells.push({ r: 1, c: opCol });
     step2ExpectedValues.push(outerOp);
 
-    const steps: Step[] = [
-      {
-        id: 'step_inner_result',
-        type: 'parentheses_inner_result',
-        targetCells: step1TargetCells,
-        expectedValues: step1ExpectedValues,
-        explanationKey: 'parentheses_inner_result_explanation',
-        nextFocus: step2TargetCells[0] || null,
-        dependencies: [],
-      },
-      {
-        id: 'step_substitute',
-        type: 'parentheses_substitute',
-        targetCells: step2TargetCells,
-        expectedValues: step2ExpectedValues,
-        explanationKey: 'parentheses_substitute_explanation',
-        nextFocus: { r: 3, c: cols - 1 }, // Will be updated after sub-engine
-        dependencies: step1TargetCells,
-      }
-    ];
-
-    // 2. Delegate to sub-engine
-    let subResult: StepResult;
-    if (outerOp === '+') {
+    // 2. Delegate to inner sub-engine
+    let innerSubResult: StepResult;
+    if (innerOp === '+') {
       const engine = new AdditionEngine();
-      subResult = engine.generate({ operands: [a, innerResult] });
+      innerSubResult = engine.generate({ operands: [b, c] });
     } else {
       const engine = new SubtractionEngine();
-      subResult = engine.generate({ minuend: a, subtrahend: innerResult, method: 'complement' });
+      innerSubResult = engine.generate({ minuend: b, subtrahend: c, method: 'complement' });
+    }
+
+    // 3. Delegate to outer sub-engine
+    let outerSubResult: StepResult;
+    if (outerOp === '+') {
+      const engine = new AdditionEngine();
+      outerSubResult = engine.generate({ operands: [a, innerResult] });
+    } else {
+      const engine = new SubtractionEngine();
+      outerSubResult = engine.generate({ minuend: a, subtrahend: innerResult, method: 'complement' });
     }
 
     const rowOffset = 3;
-    const subGrid = subResult.grid;
+    const innerSubGrid = innerSubResult.grid;
+    const outerSubGrid = outerSubResult.grid;
     
-    // We need to align the subGrid to the right of our topGrid, or just pad it.
-    // Actually, subGrid has its own cols. We should make the final grid width = max(cols, subGrid[0].length)
-    const finalCols = Math.max(cols, subGrid[0].length);
+    const innerCols = innerSubGrid[0].length;
+    const outerCols = outerSubGrid[0].length;
     
+    const finalCols = Math.max(cols, innerCols + outerCols + 2);
+    
+    const innerColOffset = 1; // Left aligned with a small margin
+    const outerColOffset = finalCols - outerCols - 1; // Right aligned with a small margin
+
     // Pad topGrid if needed
     for (let r = 0; r < 3; r++) {
       while (topGrid[r].length < finalCols) {
@@ -136,45 +130,143 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
       }
     }
 
-    const outerSetupTargetCells: Position[] = [];
-    const outerSetupExpectedValues: string[] = [];
+    const innerSetupTargetCells: Position[] = [];
+    const innerSetupExpectedValues: string[] = [];
 
-    // Shift and pad subGrid
-    const shiftedSubGrid: GridMatrix = subGrid.map((row, rIdx) => {
+    const shiftedInnerSubGrid: GridMatrix = innerSubGrid.map((row, rIdx) => {
       const newRow = [];
-      // Right-align the subGrid within finalCols
-      const colOffset = finalCols - row.length;
-      
-      for (let c = 0; c < finalCols; c++) {
-        if (c < colOffset) {
-          newRow.push(this.createEmptyCell(rIdx + rowOffset, c));
-        } else {
-          const oldCell = row[c - colOffset];
-          const newCell = {
-            ...oldCell,
-            id: `${rIdx + rowOffset},${c}`,
-          };
-          
-          // Hide operands in rows 0 and 1 of subGrid to prevent spoilers
-          if ((rIdx === 0 || rIdx === 1) && newCell.value !== '' && newCell.role !== 'empty' && newCell.role !== 'separator') {
-            outerSetupTargetCells.push({ r: rIdx + rowOffset, c });
-            outerSetupExpectedValues.push(newCell.value);
-            newCell.expectedValue = newCell.value;
-            newCell.value = '';
-            newCell.isEditable = true;
-          }
-          
-          newRow.push(newCell);
+      for (let c = 0; c < innerCols; c++) {
+        const oldCell = row[c];
+        const newCell = {
+          ...oldCell,
+          id: `${rIdx + rowOffset},${c + innerColOffset}`,
+        };
+        
+        if (rIdx < innerSubGrid.length - 3 && newCell.value !== '' && newCell.role !== 'empty' && newCell.role !== 'separator') {
+          innerSetupTargetCells.push({ r: rIdx + rowOffset, c: c + innerColOffset });
+          innerSetupExpectedValues.push(newCell.value);
+          newCell.expectedValue = newCell.value;
+          newCell.value = '';
+          newCell.isEditable = true;
         }
+        
+        newRow.push(newCell);
       }
       return newRow;
     });
 
-    const finalGrid = [...topGrid, ...shiftedSubGrid];
+    const outerSetupTargetCells: Position[] = [];
+    const outerSetupExpectedValues: string[] = [];
 
-    // Create outer setup step
+    const shiftedOuterSubGrid: GridMatrix = outerSubGrid.map((row, rIdx) => {
+      const newRow = [];
+      for (let c = 0; c < outerCols; c++) {
+        const oldCell = row[c];
+        const newCell = {
+          ...oldCell,
+          id: `${rIdx + rowOffset},${c + outerColOffset}`,
+        };
+        
+        if (rIdx < outerSubGrid.length - 3 && newCell.value !== '' && newCell.role !== 'empty' && newCell.role !== 'separator') {
+          outerSetupTargetCells.push({ r: rIdx + rowOffset, c: c + outerColOffset });
+          outerSetupExpectedValues.push(newCell.value);
+          newCell.expectedValue = newCell.value;
+          newCell.value = '';
+          newCell.isEditable = true;
+        }
+        
+        newRow.push(newCell);
+      }
+      return newRow;
+    });
+
+    // Combine grids
+    const maxSubRows = Math.max(innerSubGrid.length, outerSubGrid.length);
+    const combinedSubGrid: GridMatrix = Array.from({ length: maxSubRows }, (_, rIdx) => {
+      const newRow = Array.from({ length: finalCols }, (_, cIdx) => this.createEmptyCell(rIdx + rowOffset, cIdx));
+      
+      if (rIdx < innerSubGrid.length) {
+        for (let c = 0; c < innerCols; c++) {
+          newRow[c + innerColOffset] = shiftedInnerSubGrid[rIdx][c];
+        }
+      }
+      
+      if (rIdx < outerSubGrid.length) {
+        for (let c = 0; c < outerCols; c++) {
+          newRow[c + outerColOffset] = shiftedOuterSubGrid[rIdx][c];
+        }
+      }
+      
+      return newRow;
+    });
+
+    const finalGrid = [...topGrid, ...combinedSubGrid];
+
+    // Steps array
+    const finalSteps: Step[] = [];
+
+    // 1. Inner setup
+    if (innerSetupTargetCells.length > 0) {
+      finalSteps.push({
+        id: 'step_inner_setup',
+        type: 'parentheses_inner_setup' as any,
+        targetCells: innerSetupTargetCells,
+        expectedValues: innerSetupExpectedValues,
+        explanationKey: 'parentheses_inner_setup_explanation',
+        nextFocus: innerSetupTargetCells[0] || null,
+        dependencies: [],
+      });
+    }
+
+    // 2. Inner calc steps
+    const shiftedInnerSubSteps: Step[] = innerSubResult.steps.map(step => ({
+      ...step,
+      id: `inner_${step.id}`,
+      targetCells: step.targetCells.map(p => ({ r: p.r + rowOffset, c: p.c + innerColOffset })),
+      dependencies: step.dependencies?.map(p => ({ r: p.r + rowOffset, c: p.c + innerColOffset })),
+      nextFocus: step.nextFocus ? { r: step.nextFocus.r + rowOffset, c: step.nextFocus.c + innerColOffset } : null,
+    }));
+
+    if (innerSetupTargetCells.length > 0 && shiftedInnerSubSteps.length > 0 && shiftedInnerSubSteps[0].targetCells.length > 0) {
+      finalSteps[finalSteps.length - 1].nextFocus = shiftedInnerSubSteps[0].targetCells[0];
+    }
+
+    finalSteps.push(...shiftedInnerSubSteps);
+
+    // 3. Parentheses inner result
+    const stepInnerResult: Step = {
+      id: 'step_inner_result',
+      type: 'parentheses_inner_result',
+      targetCells: step1TargetCells,
+      expectedValues: step1ExpectedValues,
+      explanationKey: 'parentheses_inner_result_explanation',
+      nextFocus: step2TargetCells[0] || null,
+      dependencies: shiftedInnerSubSteps.length > 0 ? shiftedInnerSubSteps[shiftedInnerSubSteps.length - 1].targetCells : [],
+    };
+    
+    if (shiftedInnerSubSteps.length > 0 && step1TargetCells.length > 0) {
+      shiftedInnerSubSteps[shiftedInnerSubSteps.length - 1].nextFocus = step1TargetCells[0];
+    } else if (finalSteps.length > 0 && step1TargetCells.length > 0) {
+      finalSteps[finalSteps.length - 1].nextFocus = step1TargetCells[0];
+    }
+
+    finalSteps.push(stepInnerResult);
+
+    // 4. Parentheses substitute
+    const stepSubstitute: Step = {
+      id: 'step_substitute',
+      type: 'parentheses_substitute',
+      targetCells: step2TargetCells,
+      expectedValues: step2ExpectedValues,
+      explanationKey: 'parentheses_substitute_explanation',
+      nextFocus: outerSetupTargetCells[0] || null,
+      dependencies: step1TargetCells,
+    };
+    finalSteps.push(stepSubstitute);
+
+    // 5. Outer setup
     if (outerSetupTargetCells.length > 0) {
-      steps.push({
+      finalSteps.push({
         id: 'step_outer_setup',
         type: 'parentheses_outer_setup' as any,
         targetCells: outerSetupTargetCells,
@@ -185,46 +277,33 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
       });
     }
 
-    // Shift steps
-    const shiftedSubSteps: Step[] = subResult.steps.map(step => {
-      const colOffset = finalCols - subGrid[0].length;
-      return {
-        ...step,
-        targetCells: step.targetCells.map(p => ({ r: p.r + rowOffset, c: p.c + colOffset })),
-        dependencies: step.dependencies?.map(p => ({ r: p.r + rowOffset, c: p.c + colOffset })),
-        nextFocus: step.nextFocus ? { r: step.nextFocus.r + rowOffset, c: step.nextFocus.c + colOffset } : null,
-      };
-    });
+    // 6. Outer calc steps
+    const shiftedOuterSubSteps: Step[] = outerSubResult.steps.map(step => ({
+      ...step,
+      id: `outer_${step.id}`,
+      targetCells: step.targetCells.map(p => ({ r: p.r + rowOffset, c: p.c + outerColOffset })),
+      dependencies: step.dependencies?.map(p => ({ r: p.r + rowOffset, c: p.c + outerColOffset })),
+      nextFocus: step.nextFocus ? { r: step.nextFocus.r + rowOffset, c: step.nextFocus.c + outerColOffset } : null,
+    }));
 
-    // Update nextFocus of step 2
-    if (outerSetupTargetCells.length > 0) {
-      steps[1].nextFocus = outerSetupTargetCells[0];
-    } else if (shiftedSubSteps.length > 0 && shiftedSubSteps[0].targetCells.length > 0) {
-      steps[1].nextFocus = shiftedSubSteps[0].targetCells[0];
-    } else {
-      steps[1].nextFocus = null;
+    if (outerSetupTargetCells.length > 0 && shiftedOuterSubSteps.length > 0 && shiftedOuterSubSteps[0].targetCells.length > 0) {
+      finalSteps[finalSteps.length - 1].nextFocus = shiftedOuterSubSteps[0].targetCells[0];
+    } else if (outerSetupTargetCells.length === 0 && shiftedOuterSubSteps.length > 0 && shiftedOuterSubSteps[0].targetCells.length > 0) {
+      stepSubstitute.nextFocus = shiftedOuterSubSteps[0].targetCells[0];
     }
 
-    // Update nextFocus of outer setup step
-    if (outerSetupTargetCells.length > 0) {
-      const setupStep = steps.find(s => s.id === 'step_outer_setup');
-      if (setupStep && shiftedSubSteps.length > 0 && shiftedSubSteps[0].targetCells.length > 0) {
-        setupStep.nextFocus = shiftedSubSteps[0].targetCells[0];
-      }
-    }
-
-    steps.push(...shiftedSubSteps);
+    finalSteps.push(...shiftedOuterSubSteps);
 
     const meta: GridMeta = {
       rows: finalGrid.length,
       cols: finalCols,
-      resultRow: subResult.meta.resultRow + rowOffset,
+      resultRow: outerSubResult.meta.resultRow + rowOffset,
       workingAreaStartRow: 0,
     };
 
     return {
       type: 'parentheses_evaluation',
-      steps,
+      steps: finalSteps,
       grid: finalGrid,
       meta,
       metadata: {
@@ -240,7 +319,7 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
     const correctCells: Position[] = [];
 
     // For step 1 and 2, we need prefix-/incomplete-tolerant validation
-    if (currentStep.type === 'parentheses_inner_result' || currentStep.type === 'parentheses_substitute' || currentStep.type === 'parentheses_outer_setup' as any) {
+    if (currentStep.type === 'parentheses_inner_result' || currentStep.type === 'parentheses_substitute' || currentStep.type === 'parentheses_outer_setup' as any || currentStep.type === 'parentheses_inner_setup' as any) {
       let isFullyCorrect = true;
       let hasErrors = false;
 
