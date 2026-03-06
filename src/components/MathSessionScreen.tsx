@@ -196,6 +196,9 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
                  planned.task.operation === 'insert_parentheses' ? 'insert_parentheses' :
                  planned.task.operation === 'parentheses_evaluation' ? 'parentheses_evaluation' : 'addition';
         
+        // Store the planned task ID for history tracking
+        (window as any).__lastPlannedTaskId = planned.task.id;
+        
         // Use the difficulty from the planned task
         const plannedDifficulty = planned.task.id.includes('easy') ? 'easy' : 'medium';
         
@@ -204,7 +207,6 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
             return; // Wait for re-render with new engine
         }
         
-        // We need a way to pass the planned difficulty to the generator, but for now we'll just log it
         setPlannerDecisions(prev => [...prev, {
           task: planned.task,
           score: planned.score,
@@ -239,19 +241,23 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
       let profile: DifficultyProfile;
       
       // Map difficulty string to profile properties
-      const digits = difficulty === 'easy' ? 2 : (difficulty === 'medium' ? 3 : 4);
+      let currentDifficulty = difficulty;
+      if (taskType === 'mixed' && (window as any).__lastPlannedTaskId) {
+        currentDifficulty = (window as any).__lastPlannedTaskId.includes('easy') ? 'easy' : 'medium';
+      }
+      const digits = currentDifficulty === 'easy' ? 2 : (currentDifficulty === 'medium' ? 3 : 4);
       
       if (nextOp === 'addition') {
         profile = { 
           operation: 'add', 
           digits, 
-          requireCarry: difficulty !== 'easy' 
+          requireCarry: currentDifficulty !== 'easy' 
         };
       } else if (nextOp === 'subtraction') {
         profile = { 
           operation: 'sub', 
           digits, 
-          requireBorrow: difficulty !== 'easy',
+          requireBorrow: currentDifficulty !== 'easy',
           allowNegative: false
         };
       } else if (nextOp === 'multiplication') {
@@ -265,14 +271,14 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
         } else {
             profile = { 
               operation: 'mul', 
-              digits: difficulty === 'easy' ? 2 : 3 
+              digits: currentDifficulty === 'easy' ? 2 : 3 
             };
         }
       } else if (nextOp === 'division') {
         profile = { 
           operation: 'div', 
-          digits: difficulty === 'easy' ? 2 : 3,
-          requireRemainder: difficulty === 'hard'
+          digits: currentDifficulty === 'easy' ? 2 : 3,
+          requireRemainder: currentDifficulty === 'hard'
         };
       } else if (nextOp === 'algebra') {
         // Algebra
@@ -393,8 +399,13 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
       const success = errorEvents.length === 0;
       const primaryErrorType = errorEvents.length > 0 ? errorEvents[0].payload.errorType : null;
 
+      let taskId = `${currentOperation}_${difficulty}`;
+      if (taskType === 'mixed' && (window as any).__lastPlannedTaskId) {
+        taskId = (window as any).__lastPlannedTaskId;
+      }
+
       setSessionHistory(prev => [...prev, {
-        taskId: `${currentOperation}_${difficulty}`,
+        taskId,
         success,
         errorType: primaryErrorType,
         timestamp: Date.now()
