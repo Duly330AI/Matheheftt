@@ -16,6 +16,8 @@ import { TaskType, Difficulty, GameMode, SessionState, Profile } from '../types'
 import { CognitiveLoadState } from '../cognitive/types';
 import { LearningPathPlanner } from '../planner/LearningPathPlanner';
 import { TaskDescriptor, SessionSummary } from '../planner/types';
+import { resolveInstruction } from '../session/InstructionResolver';
+import { TaskInstructionCard } from './TaskInstructionCard';
 
 interface MathSessionScreenProps {
   activeProfile: Profile;
@@ -478,6 +480,15 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
     }
   };
 
+  const currentInstruction = useMemo(() => {
+    return resolveInstruction({
+      operation: currentOperation,
+      stepType: currentStep?.type,
+      explanationKey: currentStep?.explanationKey,
+      status: state.status,
+    });
+  }, [currentOperation, currentStep, state.status]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Toolbar 
@@ -500,6 +511,10 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
       <div className="flex-1 flex flex-col items-center justify-center p-4">
         <DiagnosticOverlay state={state} seed={seed} studentModel={studentModel} />
         
+        <div className="w-full max-w-md mb-6">
+          <TaskInstructionCard instruction={currentInstruction} />
+        </div>
+
         <div className="mb-8">
           <GridRenderer 
             grid={state.grid} 
