@@ -140,38 +140,50 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart, onBack, onOpe
           <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => setDifficulty('easy')}
+              disabled={taskType === 'mixed'}
               className={cn(
                 "p-2 rounded-lg border-2 text-sm font-medium transition-all",
-                difficulty === 'easy'
-                  ? "border-green-500 bg-green-50 text-green-700"
-                  : "border-stone-200 hover:border-green-300 text-stone-600"
+                taskType === 'mixed'
+                  ? "border-stone-100 bg-stone-50 text-stone-400 cursor-not-allowed"
+                  : difficulty === 'easy'
+                    ? "border-green-500 bg-green-50 text-green-700"
+                    : "border-stone-200 hover:border-green-300 text-stone-600"
               )}
             >
               Leicht
             </button>
             <button
               onClick={() => setDifficulty('medium')}
+              disabled={taskType === 'mixed'}
               className={cn(
                 "p-2 rounded-lg border-2 text-sm font-medium transition-all",
-                difficulty === 'medium'
-                  ? "border-orange-500 bg-orange-50 text-orange-700"
-                  : "border-stone-200 hover:border-orange-300 text-stone-600"
+                taskType === 'mixed'
+                  ? "border-stone-100 bg-stone-50 text-stone-400 cursor-not-allowed"
+                  : difficulty === 'medium'
+                    ? "border-orange-500 bg-orange-50 text-orange-700"
+                    : "border-stone-200 hover:border-orange-300 text-stone-600"
               )}
             >
               Mittel
             </button>
             <button
               onClick={() => setDifficulty('hard')}
+              disabled={taskType === 'mixed'}
               className={cn(
                 "p-2 rounded-lg border-2 text-sm font-medium transition-all",
-                difficulty === 'hard'
-                  ? "border-red-500 bg-red-50 text-red-700"
-                  : "border-stone-200 hover:border-red-300 text-stone-600"
+                taskType === 'mixed'
+                  ? "border-stone-100 bg-stone-50 text-stone-400 cursor-not-allowed"
+                  : difficulty === 'hard'
+                    ? "border-red-500 bg-red-50 text-red-700"
+                    : "border-stone-200 hover:border-red-300 text-stone-600"
               )}
             >
               Schwer
             </button>
           </div>
+          {taskType === 'mixed' && (
+            <p className="text-xs text-stone-400 mt-2">Im Mix-Modus passt sich die Schwierigkeit automatisch an dein Können an.</p>
+          )}
         </div>
 
         {/* Game Mode Selection */}
