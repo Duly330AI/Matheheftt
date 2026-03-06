@@ -92,7 +92,7 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
       
       // Use the smaller scale to fit both dimensions, but cap at 1.0 (don't upscale)
       // Also set a minimum scale to prevent it from becoming unreadable (e.g. 0.5)
-      const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.35), 1);
+      const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.25), 1);
       
       setScale(newScale);
     };
@@ -140,7 +140,7 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
   };
 
   return (
-    <div ref={wrapperRef} className="w-full h-full flex items-center justify-center overflow-hidden">
+    <div ref={wrapperRef} className="w-full h-full flex items-center justify-center overflow-auto">
       <motion.div
         ref={containerRef}
         className="relative bg-white border-2 border-gray-100 rounded-xl shadow-sm mx-auto origin-center"

@@ -54,52 +54,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   return (
     <div className="bg-white border-b border-stone-200 shadow-sm z-10 flex flex-col shrink-0">
-      {/* Mobile Top Bar: Badge */}
-      <div className="md:hidden bg-blue-50 px-4 py-1.5 flex justify-center items-center text-xs font-bold uppercase tracking-wider text-blue-700 border-b border-blue-100">
-          <span>{taskTypeLabels[taskType] || taskType}</span>
-          <span className="opacity-30 mx-2">•</span>
-          <span>{difficultyLabels[difficulty] || difficulty}</span>
-          <span className="opacity-30 mx-2">•</span>
-          <span>{modeLabels[sessionState.gameMode] || sessionState.gameMode}</span>
-      </div>
-
-      {/* Mobile Middle Bar: Title + Actions */}
-      <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-stone-100">
-          <h1 className="text-lg font-semibold text-stone-700">Matheheft</h1>
-          <div className="flex items-center gap-2">
-             {sessionState.gameMode === 'exam' && !sessionState.examReviewMode && (
-                <>
-                  <button onClick={onNextExamTask} className="px-2 py-1 rounded hover:bg-stone-100 text-stone-600 text-xs font-medium border border-stone-200">
-                    Nächste
-                  </button>
-                  <button onClick={onExamSubmit} className="px-2 py-1 rounded bg-red-50 text-red-700 text-xs font-medium border border-red-100">
-                    Abgeben
-                  </button>
-                </>
-             )}
+      {/* Mobile Compact Bar */}
+      <div className="md:hidden flex items-center justify-between px-3 py-2 bg-white border-b border-stone-200 shrink-0 h-12">
+          <div className="flex items-center gap-2 overflow-hidden">
+             <span className="font-bold text-stone-700 truncate max-w-[80px]">{activeProfile?.name}</span>
+             <span className="text-stone-300">|</span>
+             <span className="text-sm text-stone-600 whitespace-nowrap">{sessionState.score} Pkt</span>
+             <span className="text-stone-300">|</span>
+             <div className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium truncate max-w-[100px]">
+                {taskTypeLabels[taskType] || taskType}
+             </div>
+          </div>
+          
+          <div className="flex items-center gap-1 shrink-0">
+             <Timer startTime={sessionState.startTime} className="text-xs text-stone-500 font-mono mr-2" />
              <button onClick={onClear} className="p-1.5 rounded hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors">
-                <Trash2 size={18} />
+                <Trash2 size={16} />
              </button>
           </div>
-      </div>
-
-      {/* Mobile Bottom Bar: Profile Info */}
-      <div className="md:hidden px-4 py-2 bg-stone-50 flex justify-center">
-          {activeProfile && (
-            <div className="flex items-center gap-3 text-sm text-stone-600" onClick={onLogout}>
-              <span className="font-medium truncate max-w-[100px]">{activeProfile.name}</span>
-              <span className="text-stone-300">|</span>
-              <span className="whitespace-nowrap">{sessionState.score} Pkt</span>
-              {sessionState.gameMode !== 'time_attack' && (
-                <>
-                  <span className="text-stone-300">|</span>
-                  <span className="whitespace-nowrap">{sessionState.currentTaskIndex}/{sessionState.totalTasks}</span>
-                </>
-              )}
-              <span className="text-stone-300">|</span>
-              <Timer startTime={sessionState.startTime} />
-            </div>
-          )}
       </div>
 
       {/* Desktop Layout (Hidden on Mobile) */}
