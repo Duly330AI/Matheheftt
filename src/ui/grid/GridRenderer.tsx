@@ -92,7 +92,7 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
       
       // Use the smaller scale to fit both dimensions, but cap at 1.0 (don't upscale)
       // Also set a minimum scale to prevent it from becoming unreadable (e.g. 0.5)
-      const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.5), 1);
+      const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.35), 1);
       
       setScale(newScale);
     };

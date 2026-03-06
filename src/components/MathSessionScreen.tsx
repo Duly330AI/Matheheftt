@@ -611,7 +611,8 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
           </div>
         )}
 
-        {!isLandscape && (
+        {/* Feedback Panel - Visible on Desktop OR when not in mobile landscape (which has limited space) */}
+        {(!isMobile || !isLandscape) && (
           <div className="w-full max-w-md bg-white p-6 rounded-xl shadow-sm border border-gray-200 min-h-[120px] flex flex-col justify-between shrink-0">
             <div>
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Feedback</h2>

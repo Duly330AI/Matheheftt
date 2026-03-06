@@ -93,69 +93,55 @@ export const ResponsiveVirtualNumpad: React.FC<VirtualNumpadProps & { layout?: '
 }) => {
     const isSide = layout === 'side';
 
+    const renderKey = (key: string, label?: React.ReactNode, variant: 'default' | 'action' | 'delete' | 'submit' = 'default') => {
+        const baseClass = "rounded shadow-sm font-bold text-xl active:scale-95 transition-transform flex items-center justify-center";
+        const variants = {
+            default: "bg-white active:bg-gray-50 h-10 sm:h-12",
+            action: "bg-blue-50 text-blue-600 border border-blue-100 active:bg-blue-100 h-10 sm:h-12",
+            delete: "bg-red-100 text-red-600 active:bg-red-200 h-10 sm:h-12",
+            submit: cn(
+                "text-white h-10 sm:h-12",
+                enterLabel === 'Next' ? "bg-green-500 active:bg-green-600" : "bg-blue-500 active:bg-blue-600"
+            )
+        };
+
+        return (
+            <button 
+                key={key} 
+                onClick={variant === 'delete' ? onDelete : variant === 'submit' ? onEnter : () => onDigit(key)} 
+                className={cn(baseClass, variants[variant])}
+            >
+                {label || key}
+            </button>
+        );
+    };
+
     return (
         <div className={cn(
             "bg-gray-100 p-2 rounded-xl select-none touch-manipulation",
-            isSide ? "w-[160px] h-full overflow-y-auto" : "w-full",
+            isSide ? "w-[240px] h-full overflow-y-auto" : "w-full",
             className
         )}>
             <div className={cn(
                 "grid gap-2",
-                isSide ? "grid-cols-2" : "grid-cols-6 sm:grid-cols-12" // Ultra wide on bottom? No, standard numpad is better.
+                isSide ? "grid-cols-3" : "grid-cols-6 sm:grid-cols-8"
             )}>
-                {/* 
-                    Bottom Layout:
-                    1 2 3 4 5
-                    6 7 8 9 0
-                    DEL ENTER
-                    
-                    OR Standard Phone Numpad:
-                    1 2 3
-                    4 5 6
-                    7 8 9
-                    . 0 DEL
-                */}
+                {/* Numbers 1-9 */}
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => renderKey(d))}
                 
-                {/* Let's use a standard 1-9 grid + bottom row for both, just changing columns */}
-                <div className={cn("contents", isSide ? "" : "hidden")}>
-                    {/* Side Layout (2 cols) */}
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(d => (
-                         <button key={d} onClick={() => onDigit(d)} className="h-12 bg-white rounded shadow-sm font-bold text-xl active:bg-gray-50">{d}</button>
-                    ))}
-                    <button onClick={onDelete} className="h-12 bg-red-100 text-red-600 rounded shadow-sm flex items-center justify-center active:bg-red-200"><Delete size={20}/></button>
-                    <button onClick={onEnter} className="h-12 bg-blue-500 text-white rounded shadow-sm flex items-center justify-center active:bg-blue-600">
-                        {enterLabel === 'Next' ? <ArrowRight/> : <Check/>}
-                    </button>
-                </div>
+                {/* Zero */}
+                {renderKey('0')}
 
-                <div className={cn("grid grid-cols-7 gap-1 w-full", isSide ? "hidden" : "")}>
-                    {/* Bottom Layout (Linear / Wide for landscape phones if at bottom, or standard block) 
-                        Actually, for mobile portrait, a 3x4 block is standard.
-                        For mobile landscape, if we put it on the side, it's 2x6.
-                    */}
-                </div>
-            </div>
-            
-            {/* 
-                Let's simplify. I will render a standard keypad structure and let CSS Grid handle the shape.
-            */}
-            <div className={cn(
-                "grid gap-2",
-                layout === 'side' ? "grid-cols-2" : "grid-cols-6" // 6 cols for bottom bar: 1,2,3,4,5,6 / 7,8,9,0,Del,Ent
-            )}>
-                 {['1', '2', '3', '4', '5', '6'].map(d => (
-                    <button key={d} onClick={() => onDigit(d)} className="h-10 sm:h-12 bg-white rounded shadow-sm font-bold text-xl active:bg-gray-50 active:scale-95 transition-transform">{d}</button>
-                 ))}
-                 {['7', '8', '9', '0'].map(d => (
-                    <button key={d} onClick={() => onDigit(d)} className="h-10 sm:h-12 bg-white rounded shadow-sm font-bold text-xl active:bg-gray-50 active:scale-95 transition-transform">{d}</button>
-                 ))}
-                 <button onClick={onDelete} className="h-10 sm:h-12 bg-red-100 text-red-600 rounded shadow-sm flex items-center justify-center active:bg-red-200 active:scale-95 transition-transform"><Delete size={20}/></button>
-                 <button onClick={onEnter} className={cn(
-                    "h-10 sm:h-12 text-white rounded shadow-sm flex items-center justify-center active:scale-95 transition-transform",
-                    enterLabel === 'Next' ? "bg-green-500 active:bg-green-600" : "bg-blue-500 active:bg-blue-600"
-                 )}>
-                    {enterLabel === 'Next' ? <ArrowRight size={20}/> : <Check size={20}/>}
-                 </button>
+                {/* Operators - Always visible now */}
+                {renderKey('+', '+', 'action')}
+                {renderKey('-', '-', 'action')}
+                {renderKey('(', '(', 'action')}
+                {renderKey(')', ')', 'action')}
+                {/* Extra algebra keys could go here if needed, e.g. x, y, z */}
+                
+                {/* Actions */}
+                {renderKey('DEL', <Delete size={20}/>, 'delete')}
+                {renderKey('ENTER', enterLabel === 'Next' ? <ArrowRight size={20}/> : <Check size={20}/>, 'submit')}
             </div>
         </div>
     );
