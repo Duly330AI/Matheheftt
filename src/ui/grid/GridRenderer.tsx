@@ -13,6 +13,9 @@ export type GridRendererProps = {
   cellSize?: number;
   focusTargetId?: string | null;
   animation?: AnimationInstruction | null;
+  activeCellId?: string | null;
+  onCellFocus?: (cellId: string) => void;
+  readOnly?: boolean;
 };
 
 export const GridRenderer: React.FC<GridRendererProps> = ({
@@ -23,10 +26,24 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
   highlightCells = [],
   cellSize = 56, // default 56px for good touch targets
   focusTargetId,
-  animation
+  animation,
+  activeCellId,
+  onCellFocus,
+  readOnly = false
 }) => {
   const rows = grid.length;
-  const cols = rows > 0 ? grid[0].length : 0;
+  // Calculate max columns robustly
+  let maxCols = 0;
+  if (rows > 0) {
+    // Explicitly check the first row as it often contains the long equation text
+    maxCols = grid[0].length;
+    for (let r = 1; r < rows; r++) {
+      if (grid[r] && grid[r].length > maxCols) {
+        maxCols = grid[r].length;
+      }
+    }
+  }
+  const cols = maxCols;
 
   const width = cols * cellSize;
   const height = rows * cellSize;
@@ -54,12 +71,49 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
   }, [grid, rows, cols]);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = React.useState(1);
+
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+
+    const updateScale = () => {
+      if (!wrapperRef.current) return;
+      
+      const availableWidth = wrapperRef.current.clientWidth;
+      const availableHeight = wrapperRef.current.clientHeight;
+      
+      // Add some padding to prevent edge-to-edge
+      const contentWidth = (cols * cellSize) + 80; // 40px padding each side
+      const contentHeight = (rows * cellSize) + 80;
+
+      const scaleX = availableWidth / contentWidth;
+      const scaleY = availableHeight / contentHeight;
+      
+      // Use the smaller scale to fit both dimensions, but cap at 1.0 (don't upscale)
+      // Also set a minimum scale to prevent it from becoming unreadable (e.g. 0.5)
+      const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.5), 1);
+      
+      setScale(newScale);
+    };
+
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(wrapperRef.current);
+    
+    // Initial calculation
+    updateScale();
+
+    return () => observer.disconnect();
+  }, [cols, rows, cellSize]);
 
   useEffect(() => {
     if (focusTargetId && containerRef.current) {
       // Small delay to ensure DOM is updated before focusing
       setTimeout(() => {
-        const input = containerRef.current?.querySelector(`#cell-${focusTargetId.replace(',', '\\,')}`) as HTMLInputElement;
+        // Escape special characters in ID for querySelector
+        // IDs might contain commas (e.g. "0,1") which need escaping
+        const safeId = focusTargetId.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1");
+        const input = containerRef.current?.querySelector(`#cell-${safeId}`) as HTMLInputElement;
         if (input && typeof input.focus === 'function') {
           input.focus();
         }
@@ -86,15 +140,20 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
   };
 
   return (
-    <motion.div
-      ref={containerRef}
-      className="relative bg-white border-2 border-gray-100 rounded-xl shadow-sm mx-auto"
-      style={{ width: width + 8, height: height + 8 }}
-      role="grid"
-      aria-label="Math Grid"
-      animate={animation?.type === 'step-complete' ? { scale: [1, 1.02, 1] } : {}}
-      transition={{ duration: 0.3 }}
-    >
+    <div ref={wrapperRef} className="w-full h-full flex items-center justify-center overflow-hidden">
+      <motion.div
+        ref={containerRef}
+        className="relative bg-white border-2 border-gray-100 rounded-xl shadow-sm mx-auto origin-center"
+        style={{ 
+          width: width + 48, 
+          height: height + 48,
+          transform: `scale(${scale})`
+        }}
+        role="grid"
+        aria-label="Math Grid"
+        animate={animation?.type === 'step-complete' ? { scale: [scale, scale * 1.02, scale] } : {}}
+        transition={{ duration: 0.3 }}
+      >
       {/* Background Grid Lines (Optional, for the "math notebook" feel) */}
       <div 
         className="absolute inset-0 pointer-events-none opacity-20"
@@ -132,10 +191,14 @@ export const GridRenderer: React.FC<GridRendererProps> = ({
               onChange={onCellChange}
               onKeyDown={onCellKeyDown}
               style={{ width: '100%', height: '100%' }}
+              readOnly={readOnly}
+              onFocus={() => onCellFocus?.(cell.id)}
+              isFocused={activeCellId === cell.id}
             />
           </motion.div>
         );
       })}
-    </motion.div>
+      </motion.div>
+    </div>
   );
 };

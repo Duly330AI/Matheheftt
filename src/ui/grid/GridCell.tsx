@@ -8,9 +8,12 @@ export type GridCellProps = {
   onChange?: (cellId: string, value: string) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>, cellId: string) => void;
   style: React.CSSProperties;
+  readOnly?: boolean;
+  onFocus?: () => void;
+  isFocused?: boolean;
 };
 
-export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, style }: GridCellProps) => {
+export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, style, readOnly, onFocus, isFocused }: GridCellProps) => {
   const { role, value, isEditable, id, status } = cell;
 
   if (role === 'empty') {
@@ -62,7 +65,7 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
   }
 
   const highlightClasses = highlight ? "bg-red-100 rounded-md z-10" : "";
-  const activeClasses = isActive ? "bg-blue-50 ring-2 ring-blue-400 rounded-md z-10" : "";
+  const activeClasses = (isActive || isFocused) ? "bg-blue-50 ring-2 ring-blue-400 rounded-md z-10" : "";
   
   // Combine classes, status takes precedence over highlight/active if set
   const finalClasses = `${baseClasses} ${roleClasses} ${statusClasses || highlightClasses || activeClasses}`;
@@ -77,7 +80,11 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
         inputMode={isAlgebra || isOperator ? "text" : "numeric"}
         maxLength={1}
         value={value}
+        readOnly={readOnly}
+        onClick={() => onFocus?.()}
+        onFocus={() => onFocus?.()}
         onChange={(e) => {
+          if (readOnly) return;
           const val = e.target.value;
           if (isAlgebra) {
              // Allow alphanumeric and basic math symbols
@@ -106,14 +113,14 @@ export const GridCell = memo(({ cell, isActive, highlight, onChange, onKeyDown, 
   }
 
   return (
-    <span
+    <div
       id={`cell-${id}`}
       style={style}
       className={finalClasses}
       aria-label={`${role} ${value}`}
     >
       {value}
-    </span>
+    </div>
   );
 });
 

@@ -43,19 +43,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-8 flex justify-between items-center">
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lehrer Dashboard</h1>
             <p className="text-gray-500">Echtzeit-Analyse & Pädagogische Einblicke</p>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200">
-              <span className="text-sm text-gray-500 font-medium">Schüler:</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
+            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200 w-full sm:w-auto">
+              <span className="text-sm text-gray-500 font-medium whitespace-nowrap">Schüler:</span>
               <select 
                 value={activeProfileId}
                 onChange={(e) => onProfileChange(e.target.value)}
-                className="bg-transparent border-none text-sm font-bold text-gray-900 focus:ring-0 cursor-pointer"
+                className="bg-transparent border-none text-sm font-bold text-gray-900 focus:ring-0 cursor-pointer w-full sm:w-auto"
               >
                 {profiles.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -63,20 +63,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </select>
             </div>
 
-            <div className="flex gap-4">
-              <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-                <span className="block text-xs text-gray-400 uppercase tracking-wider">Meisterschaft</span>
-                <span className="text-xl font-bold text-blue-600">{((kpis.mastery || 0) * 100).toFixed(0)}%</span>
+            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+              <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200 text-center min-w-[100px]">
+                <span className="block text-[10px] text-gray-400 uppercase tracking-wider mb-1">Meisterschaft</span>
+                <span className="text-lg font-bold text-blue-600 block leading-none">{((kpis.mastery || 0) * 100).toFixed(0)}%</span>
               </div>
-              <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-                <span className="block text-xs text-gray-400 uppercase tracking-wider">Anstrengung</span>
-                <span className={`text-xl font-bold ${kpis.struggle > 0.7 ? 'text-red-500' : 'text-green-500'}`}>
+              <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200 text-center min-w-[100px]">
+                <span className="block text-[10px] text-gray-400 uppercase tracking-wider mb-1">Anstrengung</span>
+                <span className={`text-lg font-bold block leading-none ${kpis.struggle > 0.7 ? 'text-red-500' : 'text-green-500'}`}>
                   {((kpis.struggle || 0) * 100).toFixed(0)}%
                 </span>
               </div>
-              <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-                <span className="block text-xs text-gray-400 uppercase tracking-wider">Fokus</span>
-                <span className="text-xl font-bold text-purple-600">{((kpis.focus || 0) * 100).toFixed(0)}%</span>
+              <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200 text-center min-w-[100px]">
+                <span className="block text-[10px] text-gray-400 uppercase tracking-wider mb-1">Fokus</span>
+                <span className="text-lg font-bold text-purple-600 block leading-none">{((kpis.focus || 0) * 100).toFixed(0)}%</span>
               </div>
             </div>
           </div>

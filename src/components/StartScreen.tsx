@@ -40,97 +40,117 @@ export const StartScreen: React.FC<StartScreenProps> = ({ onStart, onBack, onOpe
         </button>
 
         <h2 className="text-2xl font-bold text-stone-800 mb-6">Wähle deine Übung</h2>
-
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {['mixed', '+', '-', '*', ':'].map((type) => (
-            <button
-              key={type}
-              onClick={() => {
-                setTaskType(type as TaskType);
-                if (type !== '1x1') setSelectedTable(null);
-              }}
-              className={cn(
-                "px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all",
-                taskType === type 
-                  ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm" 
-                  : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
-              )}
-            >
-              {type === 'mixed' ? 'Mix' : type}
-            </button>
-          ))}
-          <button
-             onClick={() => setTaskType('1x1')}
-             className={cn(
-               "px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all",
-               taskType === '1x1'
-                 ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
-                 : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
-             )}
-          >
-            1x1
-          </button>
-          <button
-             onClick={() => setTaskType('algebra')}
-             className={cn(
-               "px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all",
-               taskType === 'algebra'
-                 ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
-                 : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
-             )}
-          >
-            (x)
-          </button>
-          <button
-             onClick={() => setTaskType('insert_parentheses')}
-             className={cn(
-               "px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all",
-               taskType === 'insert_parentheses'
-                 ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
-                 : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
-             )}
-             title="Klammern setzen"
-          >
-            ( )
-          </button>
-          <button
-             onClick={() => setTaskType('parentheses_evaluation')}
-             className={cn(
-               "px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all",
-               taskType === 'parentheses_evaluation'
-                 ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
-                 : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
-             )}
-             title="Klammern ausrechnen"
-          >
-            a ± (b ± c)
-          </button>
-        </div>
-
-        {taskType === '1x1' && (
-          <div className="mb-8 animate-in fade-in slide-in-from-top-2 duration-200">
-            <h3 className="text-sm font-semibold text-stone-500 mb-3 uppercase tracking-wider">Welche Reihe?</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {Array.from({ length: 10 }).map((_, i) => {
-                const num = i + 1;
-                return (
-                  <button
-                    key={num}
-                    onClick={() => setSelectedTable(num)}
-                    className={cn(
-                      "h-10 rounded-lg border-2 flex items-center justify-center font-medium transition-all",
-                      selectedTable === num
-                        ? "bg-blue-50 border-blue-500 text-blue-700"
-                        : "border-stone-200 text-stone-600 hover:bg-stone-50"
-                    )}
-                  >
-                    {num}
-                  </button>
-                );
-              })}
+        
+        <div className="space-y-6 mb-8 text-left">
+          {/* Grundrechenarten */}
+          <div>
+            <h3 className="text-xs font-bold text-stone-400 mb-2 uppercase tracking-wider ml-1">Grundrechenarten</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {['mixed', '+', '-', '*', ':'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setTaskType(type as TaskType);
+                    if (type !== '1x1') setSelectedTable(null);
+                  }}
+                  className={cn(
+                    "px-2 py-3 rounded-lg border-2 text-lg font-medium transition-all flex items-center justify-center",
+                    taskType === type 
+                      ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm" 
+                      : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
+                  )}
+                >
+                  {type === 'mixed' ? 'Mix' : type}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+
+          {/* Einmaleins */}
+          <div>
+            <h3 className="text-xs font-bold text-stone-400 mb-2 uppercase tracking-wider ml-1">Reihen</h3>
+            <button
+               onClick={() => setTaskType('1x1')}
+               className={cn(
+                 "w-full px-4 py-3 rounded-lg border-2 text-lg font-medium transition-all flex items-center justify-center gap-2",
+                 taskType === '1x1'
+                   ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
+                   : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
+               )}
+            >
+              <span>1x1</span>
+              <span className="text-sm font-normal opacity-70">(Einmaleins)</span>
+            </button>
+            
+            {taskType === '1x1' && (
+              <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200 bg-stone-50 p-3 rounded-lg border border-stone-200">
+                <h4 className="text-xs font-semibold text-stone-500 mb-2 uppercase tracking-wider text-center">Welche Reihe?</h4>
+                <div className="grid grid-cols-5 gap-2">
+                  {Array.from({ length: 10 }).map((_, i) => {
+                    const num = i + 1;
+                    return (
+                      <button
+                        key={num}
+                        onClick={() => setSelectedTable(num)}
+                        className={cn(
+                          "h-10 rounded-lg border flex items-center justify-center font-medium transition-all",
+                          selectedTable === num
+                            ? "bg-blue-500 border-blue-600 text-white shadow-sm"
+                            : "bg-white border-stone-200 text-stone-600 hover:border-blue-300 hover:text-blue-600"
+                        )}
+                      >
+                        {num}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Algebra */}
+          <div>
+            <h3 className="text-xs font-bold text-stone-400 mb-2 uppercase tracking-wider ml-1">Algebra & Terme</h3>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                 onClick={() => setTaskType('algebra')}
+                 className={cn(
+                   "px-4 py-3 rounded-lg border-2 text-base font-medium transition-all flex items-center justify-between group",
+                   taskType === 'algebra'
+                     ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
+                     : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
+                 )}
+              >
+                <span>Terme auflösen</span>
+                <span className="font-mono text-sm bg-stone-100 px-2 py-1 rounded group-hover:bg-white transition-colors">a(b+c)</span>
+              </button>
+              <button
+                 onClick={() => setTaskType('insert_parentheses')}
+                 className={cn(
+                   "px-4 py-3 rounded-lg border-2 text-base font-medium transition-all flex items-center justify-between group",
+                   taskType === 'insert_parentheses'
+                     ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
+                     : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
+                 )}
+              >
+                <span>Klammern setzen</span>
+                <span className="font-mono text-sm bg-stone-100 px-2 py-1 rounded group-hover:bg-white transition-colors">( ... )</span>
+              </button>
+              <button
+                 onClick={() => setTaskType('parentheses_evaluation')}
+                 className={cn(
+                   "px-4 py-3 rounded-lg border-2 text-base font-medium transition-all flex items-center justify-between group",
+                   taskType === 'parentheses_evaluation'
+                     ? "bg-blue-50 border-blue-500 text-blue-700 shadow-sm"
+                     : "border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300"
+                 )}
+              >
+                <span>Klammern rechnen</span>
+                <span className="font-mono text-sm bg-stone-100 px-2 py-1 rounded group-hover:bg-white transition-colors">a ± (b ± c)</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="h-px bg-stone-100 my-6" />
 

@@ -85,22 +85,26 @@ export function ProfileSelector({ profiles, createProfile, selectProfile, delete
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4 font-sans">
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-2xl border border-stone-200 relative">
-        <button 
-            onClick={onOpenLeaderboard}
-            className="absolute top-6 right-6 text-yellow-500 hover:text-yellow-600 transition-colors p-2 rounded-full hover:bg-yellow-50 flex items-center gap-2"
-            title="Bestenliste"
-        >
-            <Trophy size={24} />
-            <span className="text-sm font-bold hidden sm:inline">Bestenliste</span>
-        </button>
-        <button 
-            onClick={onOpenDashboard}
-            className="absolute top-6 left-6 text-blue-500 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50 flex items-center gap-2"
-            title="Lehrer Dashboard"
-        >
-            <LineChart size={24} />
-            <span className="text-sm font-bold hidden sm:inline">Lehrer</span>
-        </button>
+        
+        {/* Header Actions */}
+        <div className="flex justify-between items-center mb-6">
+            <button 
+                onClick={onOpenDashboard}
+                className="text-blue-500 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-blue-50 flex items-center gap-2"
+                title="Lehrer Dashboard"
+            >
+                <LineChart size={20} />
+                <span className="text-sm font-bold">Lehrer</span>
+            </button>
+            <button 
+                onClick={onOpenLeaderboard}
+                className="text-yellow-500 hover:text-yellow-600 transition-colors p-2 rounded-lg hover:bg-yellow-50 flex items-center gap-2"
+                title="Bestenliste"
+            >
+                <Trophy size={20} />
+                <span className="text-sm font-bold">Bestenliste</span>
+            </button>
+        </div>
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-stone-800 mb-2">Matheheft Digital</h1>

@@ -18,6 +18,7 @@ import { LearningPathPlanner } from '../planner/LearningPathPlanner';
 import { TaskDescriptor, SessionSummary } from '../planner/types';
 import { resolveInstruction } from '../session/InstructionResolver';
 import { TaskInstructionCard } from './TaskInstructionCard';
+import { ResponsiveVirtualNumpad } from './VirtualNumpad';
 
 interface MathSessionScreenProps {
   activeProfile: Profile;
@@ -30,6 +31,30 @@ interface MathSessionScreenProps {
   onFinish: (state: SessionState) => void;
   onExit: () => void;
 }
+
+// Simple hook to detect mobile/tablet and orientation
+const useMobileLayout = () => {
+  const [layout, setLayout] = useState<{ isMobile: boolean; isLandscape: boolean }>({ 
+    isMobile: false, 
+    isLandscape: false 
+  });
+
+  useEffect(() => {
+    const checkLayout = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isMobile = width < 768 || (height < 500 && width < 900); // Also catch landscape phones
+      const isLandscape = width > height;
+      setLayout({ isMobile, isLandscape });
+    };
+    
+    checkLayout();
+    window.addEventListener('resize', checkLayout);
+    return () => window.removeEventListener('resize', checkLayout);
+  }, []);
+
+  return layout;
+};
 
 // Simple translation helper
 const t = (key: string | null): string | null => {
@@ -127,6 +152,44 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [animation, setAnimation] = useState<AnimationInstruction | null>(null);
   const [taskProcessed, setTaskProcessed] = useState(false);
+  const [activeCellId, setActiveCellId] = useState<string | null>(null);
+  const { isMobile, isLandscape } = useMobileLayout();
+
+  // Sync focusTarget with activeCellId
+  useEffect(() => {
+    if (focusTarget?.cellId) {
+      setActiveCellId(focusTarget.cellId);
+    }
+  }, [focusTarget]);
+
+  const handleVirtualInput = (digit: string) => {
+    if (activeCellId) {
+      handleCellChange(activeCellId, digit);
+      
+      // Auto-advance logic for virtual keyboard could be implemented here if desired
+      // For now, let the flow engine handle focus changes via state updates
+    }
+  };
+
+  const handleVirtualDelete = () => {
+    if (activeCellId) {
+      handleCellChange(activeCellId, '');
+    }
+  };
+
+  const handleVirtualEnter = () => {
+    if (state.status === 'correct') {
+      telemetry.log('step_transition', { 
+        fromStepIndex: state.currentStepIndex, 
+        toStepIndex: state.currentStepIndex + 1 
+      });
+      next();
+    } else if (state.status === 'solving') {
+        check();
+    } else if (state.status === 'finished') {
+        handleNewTask();
+    }
+  };
 
   // Determine if current step is parentheses insertion
   const currentStep = state.steps[state.currentStepIndex];
@@ -490,7 +553,7 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
   }, [currentOperation, currentStep, state.status]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
       <Toolbar 
         activeProfile={activeProfile}
         sessionState={{
@@ -508,14 +571,19 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
         onLogout={onExit}
       />
       
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
+      <div className={`flex-1 flex ${isMobile && isLandscape ? 'flex-row items-stretch' : 'flex-col items-center'} justify-center p-4 min-h-0`}>
         <DiagnosticOverlay state={state} seed={seed} studentModel={studentModel} />
         
-        <div className="w-full max-w-md mb-6">
-          <TaskInstructionCard instruction={currentInstruction} />
+        <div className={`w-full max-w-md ${isMobile && isLandscape ? 'w-64 mr-4 h-full flex flex-col justify-center shrink-0' : 'mb-6 shrink-0'}`}>
+          <div className="block md:hidden">
+            <TaskInstructionCard instruction={currentInstruction} mode="compact" />
+          </div>
+          <div className="hidden md:block">
+            <TaskInstructionCard instruction={currentInstruction} mode="default" />
+          </div>
         </div>
 
-        <div className="mb-8">
+        <div className={`flex-1 min-h-0 flex items-center justify-center w-full overflow-hidden ${isMobile && isLandscape ? 'h-full' : 'mb-8'}`}>
           <GridRenderer 
             grid={state.grid} 
             activeStep={state.status !== 'finished' ? state.steps[state.currentStepIndex] : undefined}
@@ -524,70 +592,88 @@ export const MathSessionScreen: React.FC<MathSessionScreenProps> = ({
             highlightCells={state.highlights}
             focusTargetId={focusTarget?.cellId}
             animation={animation}
+            activeCellId={activeCellId}
+            onCellFocus={setActiveCellId}
+            readOnly={isMobile}
           />
         </div>
 
-        <div className="w-full max-w-md bg-white p-6 rounded-xl shadow-sm border border-gray-200 min-h-[120px] flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Feedback</h2>
-            {state.status === 'error' ? (
-              <p className="text-lg text-red-600">
-                {state.hintMessage || t(state.hintMessageKey) || "Das stimmt noch nicht ganz."}
-              </p>
-            ) : state.status === 'correct' ? (
-              <p className="text-lg text-green-600">
-                Richtig! Geht gleich weiter...
-              </p>
-            ) : state.status === 'finished' ? (
-              <p className="text-lg text-green-600 font-bold">
-                Super! Du hast die Aufgabe komplett gelöst!
-              </p>
-            ) : (
-              <p className="text-lg text-gray-700">
-                {state.steps[state.currentStepIndex] ? `Tippe das Ergebnis für den markierten Bereich ein.` : ''}
-              </p>
-            )}
+        {/* Virtual Numpad for Mobile */}
+        {isMobile && (
+          <div className={`shrink-0 ${isMobile && isLandscape ? 'w-auto ml-4 h-full flex items-center' : 'w-full max-w-md mb-4'}`}>
+            <ResponsiveVirtualNumpad 
+              onDigit={handleVirtualInput}
+              onDelete={handleVirtualDelete}
+              onEnter={handleVirtualEnter}
+              enterLabel={state.status === 'correct' ? 'Next' : 'Check'}
+              layout={isLandscape ? 'side' : 'bottom'}
+            />
           </div>
+        )}
 
-          <div className="mt-4 flex justify-between items-center">
-            <button 
-              onClick={undo}
-              className="text-sm text-gray-500 hover:text-gray-800"
-            >
-              Rückgängig
-            </button>
-            
-            {state.status === 'finished' ? (
-              <div className="flex gap-2">
-                  <button 
-                    onClick={handleNewTask}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    Nächste Aufgabe
-                  </button>
-                  <button 
-                    onClick={handleFinishSession}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
-                  >
-                    Beenden
-                  </button>
-              </div>
-            ) : state.status === 'correct' ? (
+        {!isLandscape && (
+          <div className="w-full max-w-md bg-white p-6 rounded-xl shadow-sm border border-gray-200 min-h-[120px] flex flex-col justify-between shrink-0">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Feedback</h2>
+              {state.status === 'error' ? (
+                <p className="text-lg text-red-600">
+                  {state.hintMessage || t(state.hintMessageKey) || "Das stimmt noch nicht ganz."}
+                </p>
+              ) : state.status === 'correct' ? (
+                <p className="text-lg text-green-600">
+                  Richtig! Geht gleich weiter...
+                </p>
+              ) : state.status === 'finished' ? (
+                <p className="text-lg text-green-600 font-bold">
+                  Super! Du hast die Aufgabe komplett gelöst!
+                </p>
+              ) : (
+                <p className="text-lg text-gray-700">
+                  {state.steps[state.currentStepIndex] ? `Tippe das Ergebnis für den markierten Bereich ein.` : ''}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-between items-center">
               <button 
-                onClick={() => {
-                  telemetry.log('step_transition', { 
-                    fromStepIndex: state.currentStepIndex, 
-                    toStepIndex: state.currentStepIndex + 1 
-                  });
-                  next();
-                }}
-                className="px-4 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-colors"
+                onClick={undo}
+                className="text-sm text-gray-500 hover:text-gray-800"
               >
-                Nächster Schritt
+                Rückgängig
               </button>
-            ) : null}
+              
+              {state.status === 'finished' ? (
+                <div className="flex gap-2">
+                    <button 
+                      onClick={handleNewTask}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Nächste Aufgabe
+                    </button>
+                    <button 
+                      onClick={handleFinishSession}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
+                    >
+                      Beenden
+                    </button>
+                </div>
+              ) : state.status === 'correct' ? (
+                <button 
+                  onClick={() => {
+                    telemetry.log('step_transition', { 
+                      fromStepIndex: state.currentStepIndex, 
+                      toStepIndex: state.currentStepIndex + 1 
+                    });
+                    next();
+                  }}
+                  className="px-4 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-colors"
+                >
+                  Nächster Schritt
+                </button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
