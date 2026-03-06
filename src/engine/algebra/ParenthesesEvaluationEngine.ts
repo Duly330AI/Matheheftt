@@ -111,17 +111,20 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
       outerSubResult = engine.generate({ minuend: a, subtrahend: innerResult, method: 'complement' });
     }
 
-    const rowOffset = 3;
+    const innerRowOffset = 3;
     const innerSubGrid = innerSubResult.grid;
     const outerSubGrid = outerSubResult.grid;
     
     const innerCols = innerSubGrid[0].length;
     const outerCols = outerSubGrid[0].length;
     
-    const finalCols = Math.max(cols, innerCols + outerCols + 2);
+    // Vertical Layout: Stack them
+    const finalCols = Math.max(cols, Math.max(innerCols, outerCols) + 2);
     
-    const innerColOffset = 1; // Left aligned with a small margin
-    const outerColOffset = finalCols - outerCols - 1; // Right aligned with a small margin
+    const innerColOffset = 1; 
+    const outerColOffset = 1; // Left aligned as well
+    
+    const outerRowOffset = innerRowOffset + innerSubGrid.length + 1; // Stack below inner grid with 1 row gap
 
     // Pad topGrid if needed
     for (let r = 0; r < 3; r++) {
@@ -139,11 +142,11 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
         const oldCell = row[c];
         const newCell = {
           ...oldCell,
-          id: `${rIdx + rowOffset},${c + innerColOffset}`,
+          id: `${rIdx + innerRowOffset},${c + innerColOffset}`,
         };
         
         if (rIdx < innerSubGrid.length - 3 && newCell.value !== '' && newCell.role !== 'empty' && newCell.role !== 'separator') {
-          innerSetupTargetCells.push({ r: rIdx + rowOffset, c: c + innerColOffset });
+          innerSetupTargetCells.push({ r: rIdx + innerRowOffset, c: c + innerColOffset });
           innerSetupExpectedValues.push(newCell.value);
           newCell.expectedValue = newCell.value;
           newCell.value = '';
@@ -164,11 +167,11 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
         const oldCell = row[c];
         const newCell = {
           ...oldCell,
-          id: `${rIdx + rowOffset},${c + outerColOffset}`,
+          id: `${rIdx + outerRowOffset},${c + outerColOffset}`,
         };
         
         if (rIdx < outerSubGrid.length - 3 && newCell.value !== '' && newCell.role !== 'empty' && newCell.role !== 'separator') {
-          outerSetupTargetCells.push({ r: rIdx + rowOffset, c: c + outerColOffset });
+          outerSetupTargetCells.push({ r: rIdx + outerRowOffset, c: c + outerColOffset });
           outerSetupExpectedValues.push(newCell.value);
           newCell.expectedValue = newCell.value;
           newCell.value = '';
@@ -180,20 +183,26 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
       return newRow;
     });
 
-    // Combine grids
-    const maxSubRows = Math.max(innerSubGrid.length, outerSubGrid.length);
-    const combinedSubGrid: GridMatrix = Array.from({ length: maxSubRows }, (_, rIdx) => {
-      const newRow = Array.from({ length: finalCols }, (_, cIdx) => this.createEmptyCell(rIdx + rowOffset, cIdx));
+    // Combine grids (Vertical Stack)
+    const totalSubRows = innerSubGrid.length + 1 + outerSubGrid.length;
+    const combinedSubGrid: GridMatrix = Array.from({ length: totalSubRows }, (_, rIdx) => {
+      // Determine if we are in inner, gap, or outer section
+      const isInner = rIdx < innerSubGrid.length;
+      const isGap = rIdx === innerSubGrid.length;
+      const isOuter = rIdx > innerSubGrid.length;
       
-      if (rIdx < innerSubGrid.length) {
+      const absoluteRow = rIdx + innerRowOffset; // Base offset is innerRowOffset (3)
+      
+      const newRow = Array.from({ length: finalCols }, (_, cIdx) => this.createEmptyCell(absoluteRow, cIdx));
+      
+      if (isInner) {
         for (let c = 0; c < innerCols; c++) {
           newRow[c + innerColOffset] = shiftedInnerSubGrid[rIdx][c];
         }
-      }
-      
-      if (rIdx < outerSubGrid.length) {
+      } else if (isOuter) {
+        const outerRIdx = rIdx - (innerSubGrid.length + 1);
         for (let c = 0; c < outerCols; c++) {
-          newRow[c + outerColOffset] = shiftedOuterSubGrid[rIdx][c];
+          newRow[c + outerColOffset] = shiftedOuterSubGrid[outerRIdx][c];
         }
       }
       
@@ -222,9 +231,9 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
     const shiftedInnerSubSteps: Step[] = innerSubResult.steps.map(step => ({
       ...step,
       id: `inner_${step.id}`,
-      targetCells: step.targetCells.map(p => ({ r: p.r + rowOffset, c: p.c + innerColOffset })),
-      dependencies: step.dependencies?.map(p => ({ r: p.r + rowOffset, c: p.c + innerColOffset })),
-      nextFocus: step.nextFocus ? { r: step.nextFocus.r + rowOffset, c: step.nextFocus.c + innerColOffset } : null,
+      targetCells: step.targetCells.map(p => ({ r: p.r + innerRowOffset, c: p.c + innerColOffset })),
+      dependencies: step.dependencies?.map(p => ({ r: p.r + innerRowOffset, c: p.c + innerColOffset })),
+      nextFocus: step.nextFocus ? { r: step.nextFocus.r + innerRowOffset, c: step.nextFocus.c + innerColOffset } : null,
     }));
 
     if (innerSetupTargetCells.length > 0 && shiftedInnerSubSteps.length > 0 && shiftedInnerSubSteps[0].targetCells.length > 0) {
@@ -281,9 +290,9 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
     const shiftedOuterSubSteps: Step[] = outerSubResult.steps.map(step => ({
       ...step,
       id: `outer_${step.id}`,
-      targetCells: step.targetCells.map(p => ({ r: p.r + rowOffset, c: p.c + outerColOffset })),
-      dependencies: step.dependencies?.map(p => ({ r: p.r + rowOffset, c: p.c + outerColOffset })),
-      nextFocus: step.nextFocus ? { r: step.nextFocus.r + rowOffset, c: step.nextFocus.c + outerColOffset } : null,
+      targetCells: step.targetCells.map(p => ({ r: p.r + outerRowOffset, c: p.c + outerColOffset })),
+      dependencies: step.dependencies?.map(p => ({ r: p.r + outerRowOffset, c: p.c + outerColOffset })),
+      nextFocus: step.nextFocus ? { r: step.nextFocus.r + outerRowOffset, c: step.nextFocus.c + outerColOffset } : null,
     }));
 
     if (outerSetupTargetCells.length > 0 && shiftedOuterSubSteps.length > 0 && shiftedOuterSubSteps[0].targetCells.length > 0) {
@@ -297,7 +306,7 @@ export class ParenthesesEvaluationEngine implements MathEngine<ParenthesesEvalua
     const meta: GridMeta = {
       rows: finalGrid.length,
       cols: finalCols,
-      resultRow: outerSubResult.meta.resultRow + rowOffset,
+      resultRow: outerSubResult.meta.resultRow + outerRowOffset,
       workingAreaStartRow: 0,
     };
 
